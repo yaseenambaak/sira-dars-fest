@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Admin Login • Sira Dars Fest</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <link
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,400..700,0..1,0..200&family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap"
+    rel="stylesheet"
+  >
+
+  <link rel="stylesheet" href="admin.css">
+</head>
+
+<body>
+
+  <main class="admin-login-page">
+
+    <div class="login-wrapper">
+
+      <section class="login-card">
+
+        <div class="login-header">
+
+          <div class="login-icon">
+            <span class="material-symbols-rounded">
+              admin_panel_settings
+            </span>
+          </div>
+
+          <h1>Sira Dars Fest</h1>
+
+          <p>
+            Administration Control Panel
+          </p>
+
+        </div>
+
+        <form id="loginForm">
+
+          <div class="form-group login-form-group">
+
+            <label for="adminUsername">
+              Username
+            </label>
+
+            <input
+              type="text"
+              id="adminUsername"
+              name="username"
+              placeholder="Enter username"
+              autocomplete="username"
+              required
+            >
+
+          </div>
+
+          <div class="form-group login-form-group">
+
+            <label for="adminPassword">
+              Password
+            </label>
+
+            <div class="password-wrapper">
+
+              <input
+                type="password"
+                id="adminPassword"
+                name="password"
+                placeholder="Enter password"
+                autocomplete="current-password"
+                required
+              >
+
+              <button
+                type="button"
+                class="password-toggle"
+                id="passwordToggle"
+                aria-label="Show password"
+              >
+                <span class="material-symbols-rounded">
+                  visibility
+                </span>
+              </button>
+
+            </div>
+
+          </div>
+
+          <div
+            class="form-error"
+            id="loginError"
+            aria-live="polite"
+          ></div>
+
+          <button
+            type="submit"
+            class="primary-button login-button"
+          >
+            <span class="material-symbols-rounded">
+              login
+            </span>
+
+            Login to Admin
+          </button>
+
+        </form>
+
+        <a
+          href="index.html"
+          class="back-link"
+        >
+          <span class="material-symbols-rounded">
+            arrow_back
+          </span>
+
+          Back to Festival Website
+        </a>
+
+      </section>
+
+    </div>
+
+  </main>
+
+  <script>
+    "use strict";
+
+    const AUTH_KEY = "adminAuthenticated";
+
+    const DEMO_USERNAME = "admin";
+    const DEMO_PASSWORD = "123456";
+
+    const loginForm = document.getElementById("loginForm");
+    const usernameInput = document.getElementById("adminUsername");
+    const passwordInput = document.getElementById("adminPassword");
+    const passwordToggle = document.getElementById("passwordToggle");
+    const loginError = document.getElementById("loginError");
+
+    /*
+     * If already logged in, go directly to admin panel.
+     */
+    if (sessionStorage.getItem(AUTH_KEY) === "true") {
+      window.location.replace("admin.html");
+    }
+
+    /*
+     * Password visibility
+     */
+    passwordToggle.addEventListener("click", () => {
+
+      const isPassword =
+        passwordInput.type === "password";
+
+      passwordInput.type =
+        isPassword ? "text" : "password";
+
+      const icon =
+        passwordToggle.querySelector("span");
+
+      icon.textContent =
+        isPassword ? "visibility_off" : "visibility";
+
+    });
+
+    /*
+     * Login
+     */
+    loginForm.addEventListener("submit", (event) => {
+
+      event.preventDefault();
+
+      const username =
+        usernameInput.value.trim();
+
+      const password =
+        passwordInput.value;
+
+      loginError.textContent = "";
+
+      if (
+        username === DEMO_USERNAME &&
+        password === DEMO_PASSWORD
+      ) {
+
+        sessionStorage.setItem(
+          AUTH_KEY,
+          "true"
+        );
+
+        window.location.replace("admin.html");
+
+        return;
+      }
+
+      loginError.textContent =
+        "Invalid username or password.";
+
+      passwordInput.focus();
+
+    });
+  </script>
+
+</body>
+</html>

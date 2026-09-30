@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+  <meta name="theme-color" content="#ff4359">
+  <meta name="description" content="Sira Dars Fest '26 — IDSA Live Festival Portal">
+
+  <title>Sira Dars Fest • IDSA</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap"
+    rel="stylesheet"
+  >
+
+  <link
+    rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400..700,0..1,0"
+  >
+
+  <link rel="stylesheet" href="style.css">
+
+  <!-- Firebase App & Firestore SDK (CDN) -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+</head>
+
+<body>
+
+  <!-- SPLASH -->
+  <div id="splashScreen" class="splash-screen">
+    <div class="splash-bg-waves"></div>
+
+    <div class="splash-content">
+
+      <div class="splash-logo-box">
+        <div class="splash-logo-mark">S</div>
+      </div>
+
+      <span class="splash-org-tag">A FESTIVAL BY IDSA</span>
+
+      <h1 class="splash-headline">SIRA DARS FEST '26</h1>
+
+      <span class="splash-sub-text">BEYOND COMPETITION</span>
+
+      <div class="splash-progress-track">
+        <div class="splash-progress-fill"></div>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- HEADER -->
+  <header class="app-header">
+    <div class="header-inner">
+
+      <div class="brand-group">
+        <div class="brand-logo">S</div>
+
+        <div class="brand-text">
+          <strong>SIRA DARS FEST</strong>
+          <span>IDSA • 2026</span>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <button
+          type="button"
+          class="notification-btn"
+          aria-label="Open updates"
+          onclick="switchView('updates')"
+        >
+          <span class="material-symbols-rounded">notifications</span>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+
+  <!-- MAIN -->
+  <main class="page-container">
+
+    <!-- TOP TABS -->
+    <section class="tab-switcher-wrapper">
+      <div class="tab-switcher">
+
+        <button class="tab-btn active" id="tabHome" onclick="switchView('home')">
+          <span class="material-symbols-rounded">home</span>
+          <span>Home</span>
+        </button>
+
+        <button class="tab-btn" id="tabLeaderboard" onclick="switchView('leaderboard')">
+          <span class="material-symbols-rounded">leaderboard</span>
+          <span>Scoreboard</span>
+        </button>
+
+        <button class="tab-btn" id="tabUpdates" onclick="switchView('updates')">
+          <span class="material-symbols-rounded">notifications</span>
+          <span>Updates</span>
+        </button>
+
+        <button class="tab-btn" id="tabProgrammes" onclick="switchView('programmes')">
+          <span class="material-symbols-rounded">event_note</span>
+          <span>Programmes</span>
+        </button>
+
+        <button class="tab-btn" id="tabCandidates" onclick="switchView('candidates')">
+          <span class="material-symbols-rounded">groups</span>
+          <span>Candidates</span>
+        </button>
+
+        <button class="tab-btn" id="tabResults" onclick="switchView('results')">
+          <span class="material-symbols-rounded">workspace_premium</span>
+          <span>Results</span>
+        </button>
+
+      </div>
+    </section>
+
+
+    <div class="panels-holder">
+
+      <!-- HOME -->
+      <section id="viewHome" class="view-panel active-panel">
+
+        <section class="hero-card">
+          <span class="hero-badge">IDSA PRESENTS</span>
+
+          <h1>Sira Dars<br><span>Fest '26</span></h1>
+
+          <p>
+            Knowledge • Creativity • Talent • Character
+          </p>
+
+          <button class="hero-button" onclick="switchView('programmes')">
+            Explore Festival
+            <span class="material-symbols-rounded">arrow_forward</span>
+          </button>
+        </section>
+
+
+        <section class="stats-pills">
+
+          <div class="pill-stat">
+            <div class="stat-icon-wrap coral">
+              <span class="material-symbols-rounded">event_note</span>
+            </div>
+            <div class="stat-data">
+              <span class="p-num" id="homePrograms">0</span>
+              <span class="p-lbl">Programmes</span>
+            </div>
+          </div>
+
+          <div class="pill-stat">
+            <div class="stat-icon-wrap purple">
+              <span class="material-symbols-rounded">groups</span>
+            </div>
+            <div class="stat-data">
+              <span class="p-num" id="homeCandidates">0</span>
+              <span class="p-lbl">Candidates</span>
+            </div>
+          </div>
+
+          <div class="pill-stat">
+            <div class="stat-icon-wrap emerald">
+              <span class="material-symbols-rounded">verified</span>
+            </div>
+            <div class="stat-data">
+              <span class="p-num" id="homeResults">0</span>
+              <span class="p-lbl">Results</span>
+            </div>
+          </div>
+
+        </section>
+
+
+        <!-- GALLERY -->
+        <section class="res-card-box">
+          <div class="panel-header">
+            <span class="eyebrow">📸 MEMORIES</span>
+            <h3 class="panel-title">Gallery Highlights</h3>
+          </div>
+
+          <div class="gallery-grid">
+
+            <div class="gallery-card gallery-one">
+              <span class="material-symbols-rounded">photo_camera</span>
+              <strong>Fest Moments</strong>
+              <small>Stage Performances</small>
+            </div>
+
+            <div class="gallery-card gallery-two">
+              <span class="material-symbols-rounded">celebration</span>
+              <strong>Creative Spirit</strong>
+              <small>Art & Competitions</small>
+            </div>
+
+          </div>
+        </section>
+
+
+        <!-- ABOUT -->
+        <section class="about-fest-card">
+
+          <div class="about-header">
+            <span class="material-symbols-rounded about-icon">auto_stories</span>
+
+            <div>
+              <span class="eyebrow">ABOUT THE FEST</span>
+              <h3 class="about-title">Our Legacy & Vision</h3>
+            </div>
+          </div>
+
+          <p class="about-desc">
+            Sira Dars Fest is an annual celebration of knowledge,
+            creativity, talent, and meaningful social values,
+            organized by IDSA — Iqra Dars Students Association.
+          </p>
+
+          <div class="vision-grid">
+
+            <div class="vision-card">
+              <span class="material-symbols-rounded vision-icon coral">palette</span>
+              <h4>Living Heritage</h4>
+              <p>Celebrating creativity, culture and meaningful values.</p>
+            </div>
+
+            <div class="vision-card">
+              <span class="material-symbols-rounded vision-icon yellow">verified</span>
+              <h4>Integrity</h4>
+              <p>Encouraging fairness, discipline and healthy competition.</p>
+            </div>
+
+            <div class="vision-card">
+              <span class="material-symbols-rounded vision-icon blue">star</span>
+              <h4>Rising Stars</h4>
+              <p>A platform for young minds to showcase their talents.</p>
+            </div>
+
+            <div class="vision-card">
+              <span class="material-symbols-rounded vision-icon emerald">bolt</span>
+              <h4>Live Connection</h4>
+              <p>Stay connected with important festival updates.</p>
+            </div>
+
+          </div>
+        </section>
+
+
+        <!-- CONTROL -->
+        <section class="control-room-card">
+          <div>
+            <span class="help-badge">NEED HELP?</span>
+            <h3>Sira Dars Fest Control Room</h3>
+            <p>Contact us for support, inquiries or platform assistance.</p>
+          </div>
+
+          <a href="admin-login.html" class="admin-login-btn">
+            Admin Login
+          </a>
+        </section>
+
+      </section>
+
+
+      <!-- LEADERBOARD -->
+      <section id="viewLeaderboard" class="view-panel">
+
+        <section class="spotlight-card">
+
+          <div class="spotlight-header">
+            <span class="spotlight-tag">
+              <span class="material-symbols-rounded">stars</span>
+              CURRENT LEADER
+            </span>
+
+            <span class="material-symbols-rounded topper-trophy">
+              emoji_events
+            </span>
+          </div>
+
+          <div class="spotlight-content">
+            <h2 id="topTeamName" class="topper-name">---</h2>
+
+            <div class="topper-points-wrap">
+              <span id="topTeamPoints" class="topper-points">0</span>
+              <span class="points-label">Total Points</span>
+            </div>
+          </div>
+
+        </section>
+
+
+        <section class="stats-pills">
+
+          <div class="pill-stat">
+            <div class="stat-icon-wrap coral">
+              <span class="material-symbols-rounded">event_note</span>
+            </div>
+            <div class="stat-data">
+              <span class="p-num" id="totalPrograms">0</span>
+              <span class="p-lbl">Programmes</span>
+            </div>
+          </div>
+
+          <div class="pill-stat">
+            <div class="stat-icon-wrap purple">
+              <span class="material-symbols-rounded">groups</span>
+            </div>
+            <div class="stat-data">
+              <span class="p-num" id="totalCandidates">0</span>
+              <span class="p-lbl">Candidates</span>
+            </div>
+          </div>
+
+          <div class="pill-stat">
+            <div class="stat-icon-wrap emerald">
+              <span class="material-symbols-rounded">verified</span>
+            </div>
+            <div class="stat-data">
+              <span class="p-num" id="publishedResults">0</span>
+              <span class="p-lbl">Published</span>
+            </div>
+          </div>
+
+        </section>
+
+
+        <div class="panel-header section-spacing">
+          <h3 class="panel-title">Global Scoreboard</h3>
+          <span class="panel-subtitle">Overall festival team standings</span>
+        </div>
+
+        <div id="leaderboardList" class="cards-stack"></div>
+
+
+        <div class="panel-header section-spacing-large">
+          <h3 class="panel-title">Individual Toppers</h3>
+          <span class="panel-subtitle">Top performers based on points</span>
+        </div>
+
+        <div id="individualToppersList" class="cards-stack"></div>
+
+      </section>
+
+
+      <!-- UPDATES -->
+      <section id="viewUpdates" class="view-panel">
+
+        <div class="panel-header">
+          <h3 class="panel-title">Fest Updates</h3>
+          <span class="panel-subtitle">Latest official festival announcements</span>
+        </div>
+
+        <div id="updatesList" class="cards-stack"></div>
+
+      </section>
+
+
+      <!-- PROGRAMMES -->
+      <section id="viewProgrammes" class="view-panel">
+
+        <div class="panel-header flex-between">
+
+          <div>
+            <h3 class="panel-title">Fest Programmes</h3>
+            <span class="panel-subtitle">Events, venues & schedule</span>
+          </div>
+
+          <div class="search-wrap">
+            <span class="material-symbols-rounded search-icon">search</span>
+
+            <input
+              type="search"
+              id="searchProgram"
+              placeholder="Search programmes..."
+              class="pill-search-input"
+              autocomplete="off"
+            >
+          </div>
+
+        </div>
+
+        <div id="programmesList" class="cards-stack"></div>
+
+      </section>
+
+
+      <!-- CANDIDATES -->
+      <section id="viewCandidates" class="view-panel">
+
+        <div class="panel-header flex-between">
+
+          <div>
+            <h3 class="panel-title">Registered Candidates</h3>
+            <span class="panel-subtitle">Tap a candidate to view records</span>
+          </div>
+
+          <div class="search-wrap">
+            <span class="material-symbols-rounded search-icon">search</span>
+
+            <input
+              type="search"
+              id="searchCandidate"
+              placeholder="Search candidate..."
+              class="pill-search-input"
+              autocomplete="off"
+            >
+          </div>
+
+        </div>
+
+        <div id="candidatesList" class="cards-stack"></div>
+
+      </section>
+
+
+      <!-- RESULTS -->
+      <section id="viewResults" class="view-panel">
+
+        <div class="panel-header flex-between">
+
+          <div>
+            <h3 class="panel-title">Published Results</h3>
+            <span class="panel-subtitle">Explore results by category</span>
+          </div>
+
+          <div class="search-wrap">
+            <span class="material-symbols-rounded search-icon">search</span>
+
+            <input
+              type="search"
+              id="searchResult"
+              placeholder="Search event, winner..."
+              class="pill-search-input"
+              autocomplete="off"
+            >
+          </div>
+
+        </div>
+
+
+        <div id="resultCategoryFilters" class="category-filters">
+
+          <button class="cat-filter-btn active"
+            data-category="ALL"
+            onclick="filterResultCategory('ALL')">
+            All
+          </button>
+
+          <button class="cat-filter-btn"
+            data-category="Sub-Junior"
+            onclick="filterResultCategory('Sub-Junior')">
+            Sub-Junior
+          </button>
+
+          <button class="cat-filter-btn"
+            data-category="Junior"
+            onclick="filterResultCategory('Junior')">
+            Junior
+          </button>
+
+          <button class="cat-filter-btn"
+            data-category="Senior"
+            onclick="filterResultCategory('Senior')">
+            Senior
+          </button>
+
+          <button class="cat-filter-btn"
+            data-category="General"
+            onclick="filterResultCategory('General')">
+            General
+          </button>
+
+        </div>
+
+        <div id="resultsList" class="results-grid-layout"></div>
+
+      </section>
+
+    </div>
+  </main>
+
+
+  <!-- CANDIDATE MODAL -->
+  <div id="candidateModal" class="candidate-modal" aria-hidden="true">
+
+    <div
+      id="modalContentBox"
+      class="modal-content-box"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modalTitle"
+    >
+
+      <button
+        type="button"
+        class="modal-close-btn"
+        onclick="closeCandidateModal()"
+        aria-label="Close"
+      >
+        <span class="material-symbols-rounded">close</span>
+      </button>
+
+      <div id="modalBody"></div>
+
+    </div>
+  </div>
+
+
+  <!-- MOBILE NAV -->
+  <nav class="bottom-nav">
+    <div class="nav-inner">
+
+      <button class="nav-item active" id="bNavHome" onclick="switchView('home')">
+        <span class="material-symbols-rounded nav-icon">home</span>
+        <span class="nav-label">Home</span>
+      </button>
+
+      <button class="nav-item" id="bNavStandings" onclick="switchView('leaderboard')">
+        <span class="material-symbols-rounded nav-icon">leaderboard</span>
+        <span class="nav-label">Score</span>
+      </button>
+
+      <button class="nav-item" id="bNavUpdates" onclick="switchView('updates')">
+        <span class="material-symbols-rounded nav-icon">notifications</span>
+        <span class="nav-label">Updates</span>
+      </button>
+
+      <button class="nav-item" id="bNavProgrammes" onclick="switchView('programmes')">
+        <span class="material-symbols-rounded nav-icon">event_note</span>
+        <span class="nav-label">Events</span>
+      </button>
+
+      <button class="nav-item" id="bNavResults" onclick="switchView('results')">
+        <span class="material-symbols-rounded nav-icon">emoji_events</span>
+        <span class="nav-label">Results</span>
+      </button>
+
+    </div>
+  </nav>
+
+
+  <!-- Firebase Initialization Script -->
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAXJ79MCPymsCTTM5VxiSgEShju_tAqyZ8",
+      authDomain: "sira-dars-fest.firebaseapp.com",
+      projectId: "sira-dars-fest",
+      storageBucket: "sira-dars-fest.firebasestorage.app",
+      messagingSenderId: "680115463640",
+      appId: "1:680115463640:web:4a55721c045a06f9cbfead"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+  </script>
+
+  <script src="app.js"></script>
+</body>
+</html>
