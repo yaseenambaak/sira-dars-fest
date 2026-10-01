@@ -11,6 +11,8 @@ const GRADE_POINTS = Object.freeze({
 });
 
 let currentSelectedCategory = "ALL";
+let currentCandidateCategory = "ALL";
+let currentProgrammeCategory = "ALL";
 let currentView = "home";
 let currentIndividualCategory = "Sub Junior"; // Default selected category for individual toppers
 
@@ -70,7 +72,8 @@ function toNumber(value) {
 function normalizeText(value) {
   return String(value ?? "")
     .trim()
-    .toLowerCase();
+    .toLowerCase()
+    .replace(/[\s-]+/g, ""); // Removes spaces and hyphens for robust matching (e.g. "sub-junior" == "sub junior")
 }
 
 function escapeHTML(value) {
@@ -449,20 +452,41 @@ function renderUpdates(updates) {
 
 
 /* ============================================================
-   PROGRAMMES
+   PROGRAMMES & CATEGORY FILTER
 ============================================================ */
+
+function filterProgrammeCategory(category) {
+  currentProgrammeCategory = category || "ALL";
+
+  document.querySelectorAll("#programmeCategoryFilters .cat-filter-btn").forEach(button => {
+    const buttonCategory = button.dataset.category || button.textContent.trim();
+    button.classList.toggle(
+      "active",
+      normalizeText(buttonCategory) === normalizeText(currentProgrammeCategory)
+    );
+  });
+
+  renderProgrammes(getProgrammes());
+}
 
 function renderProgrammes(programmes) {
   const container = document.getElementById("programmesList");
   if (!container) return;
 
   container.innerHTML = "";
-  const safeProgrammes = safeArray(programmes);
+  let safeProgrammes = safeArray(programmes);
+
+  if (currentProgrammeCategory !== "ALL") {
+    safeProgrammes = safeProgrammes.filter(programme => {
+      const category = String(programme.category || "").trim();
+      return normalizeText(category) === normalizeText(currentProgrammeCategory);
+    });
+  }
 
   if (safeProgrammes.length === 0) {
     container.innerHTML = `
       <div class="empty-state">
-        No programmes added yet.
+        No programmes added for this category yet.
       </div>
     `;
     return;
@@ -502,20 +526,41 @@ function renderProgrammes(programmes) {
 
 
 /* ============================================================
-   CANDIDATES
+   CANDIDATES & CATEGORY FILTER
 ============================================================ */
+
+function filterCandidateCategory(category) {
+  currentCandidateCategory = category || "ALL";
+
+  document.querySelectorAll("#candidateCategoryFilters .cat-filter-btn").forEach(button => {
+    const buttonCategory = button.dataset.category || button.textContent.trim();
+    button.classList.toggle(
+      "active",
+      normalizeText(buttonCategory) === normalizeText(currentCandidateCategory)
+    );
+  });
+
+  renderCandidates(getCandidates(), getResults());
+}
 
 function renderCandidates(candidates, results) {
   const container = document.getElementById("candidatesList");
   if (!container) return;
 
   container.innerHTML = "";
-  const safeCandidates = safeArray(candidates);
+  let safeCandidates = safeArray(candidates);
+
+  if (currentCandidateCategory !== "ALL") {
+    safeCandidates = safeCandidates.filter(candidate => {
+      const category = String(candidate.category || "").trim();
+      return normalizeText(category) === normalizeText(currentCandidateCategory);
+    });
+  }
 
   if (safeCandidates.length === 0) {
     container.innerHTML = `
       <div class="empty-state">
-        No candidates registered yet.
+        No candidates registered for this category yet.
       </div>
     `;
     return;
@@ -813,7 +858,7 @@ function renderIndividualToppers(candidates, results) {
     return;
   }
 
-  const categories = ["Sub Junior", "Junior", "Senior"];
+  const categories = ["Sub-Junior", "Junior", "Senior"];
 
   if (!categories.includes(currentIndividualCategory)) {
     currentIndividualCategory = categories[0];
@@ -1149,5 +1194,7 @@ function initializeSearch() {
 
 window.switchView = switchView;
 window.filterResultCategory = filterResultCategory;
+window.filterCandidateCategory = filterCandidateCategory;
+window.filterProgrammeCategory = filterProgrammeCategory;
 window.closeCandidateModal = closeCandidateModal;
 window.exportFestDataToExcel = exportFestDataToExcel;
