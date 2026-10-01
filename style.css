@@ -261,14 +261,9 @@ a {
   margin: 24px auto 0;
 }
 
+/* മുകളിലെ ഡ്യൂപ്ലിക്കേറ്റ് ടാബുകൾ പൂർണ്ണമായി ഒഴിവാക്കാൻ */
 .tab-switcher-wrapper {
-  margin-bottom: 20px;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-
-.tab-switcher-wrapper::-webkit-scrollbar {
-  display: none;
+  display: none !important;
 }
 
 .tab-switcher {
@@ -704,7 +699,7 @@ a {
     linear-gradient(135deg, #202522, #374c44);
   color: white;
   border-radius: 22px;
-  padding: 22px 20px; /* Reduced padding for medium size */
+  padding: 22px 20px;
   border: 1px solid rgba(214,185,106,0.2);
   box-shadow: 0 16px 35px rgba(32,37,34,0.2);
   position: relative;
@@ -745,16 +740,16 @@ a {
 
 .topper-trophy {
   color: #D6B96A;
-  font-size: 28px; /* Medium trophy size */
+  font-size: 28px;
   filter: drop-shadow(0 3px 10px rgba(214,185,106,0.4));
 }
 
 .spotlight-content {
-  margin-top: 16px; /* Balanced spacing */
+  margin-top: 16px;
 }
 
 .topper-name {
-  font-size: clamp(1.6rem, 5vw, 2.6rem); /* Medium scale size */
+  font-size: clamp(1.6rem, 5vw, 2.6rem);
   font-weight: 900;
   letter-spacing: -0.02em;
   background: linear-gradient(180deg, #FFFFFF 20%, #E8EFEB 100%);
@@ -773,7 +768,7 @@ a {
 }
 
 .topper-points {
-  font-size: clamp(2.2rem, 7vw, 3.4rem); /* Medium prominent points */
+  font-size: clamp(2.2rem, 7vw, 3.4rem);
   color: #D6B96A;
   font-weight: 900;
   letter-spacing: -0.03em;
