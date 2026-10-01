@@ -362,7 +362,6 @@ function renderGallery(galleryItems) {
 
   const safeGallery = safeArray(galleryItems);
   if (safeGallery.length === 0) {
-    // Keep default placeholders if no dynamic photos added yet
     return;
   }
 
@@ -574,15 +573,14 @@ function calculateCandidatePoints(candidate, results) {
   let points = 0;
 
   safeArray(results).forEach((result) => {
-    // Check if event type is Group, skip adding to individual points if specified (Point 6)
     if (normalizeText(result.eventType) === "group") {
       return; 
     }
 
     const positions = [
-      { key: "firstPlace", value: 5 }, // Updated from p1Val to 5 (Point 4)
-      { key: "secondPlace", value: 3 }, // Updated from p2Val to 3 (Point 4)
-      { key: "thirdPlace", value: 1 }  // Updated from p3Val to 1 (Point 4)
+      { key: "firstPlace", value: 5 },
+      { key: "secondPlace", value: 3 },
+      { key: "thirdPlace", value: 1 }
     ];
 
     positions.forEach((position) => {
@@ -626,7 +624,7 @@ function openCandidatePosterModal(candidate, results) {
       if (!winner.name || normalizeText(winner.name) === "---") return;
 
       const grade = String(winner.grade || "").toUpperCase();
-      const posPoints = isGroupEvent ? 0 : position.value; // Exclude group points from individual total if desired
+      const posPoints = isGroupEvent ? 0 : position.value;
       const points = posPoints + (GRADE_POINTS[grade] || 0);
 
       achievements.push({
@@ -788,7 +786,7 @@ function initializeModalEvents() {
 
 
 /* ============================================================
-   INDIVIDUAL TOPPERS
+   INDIVIDUAL TOPPERS (Categorized by Sub-Junior, Junior, Senior with Podium Badges)
 ============================================================ */
 
 function renderIndividualToppers(candidates, results) {
@@ -797,17 +795,15 @@ function renderIndividualToppers(candidates, results) {
 
   container.innerHTML = "";
 
-  const scores = safeArray(candidates)
-    .map((candidate) => ({
-      name: candidate.name || "Unnamed Candidate",
-      group: candidate.group || "—",
-      chest: candidate.chest || "—",
-      points: calculateCandidatePoints(candidate, results)
-    }))
-    .filter(item => item.points > 0)
-    .sort((a, b) => b.points - a.points);
+  const allScores = safeArray(candidates).map((candidate) => ({
+    name: candidate.name || "Unnamed Candidate",
+    group: candidate.group || "—",
+    chest: candidate.chest || "—",
+    category: candidate.category || "General",
+    points: calculateCandidatePoints(candidate, results)
+  })).filter(item => item.points > 0);
 
-  if (scores.length === 0) {
+  if (allScores.length === 0) {
     container.innerHTML = `
       <div class="empty-state">
         No individual points recorded yet.
@@ -816,31 +812,54 @@ function renderIndividualToppers(candidates, results) {
     return;
   }
 
-  scores.slice(0, 5).forEach((top, index) => {
-    const item = document.createElement("div");
-    item.className = "team-list-item top-rank";
+  const categories = ["Sub Junior", "Junior", "Senior"];
 
-    item.innerHTML = `
-      <div class="team-lead-meta">
-        <span class="team-rank-no">${index + 1}</span>
-        <div style="min-width:0">
-          <span class="team-title-text">${escapeHTML(top.name)}</span>
-          <div style="
-            font-size:.62rem;
-            color:var(--text-sub);
-            margin-top:2px;
-          ">
-            ${escapeHTML(top.group)} · Chest ${escapeHTML(top.chest)}
-          </div>
-        </div>
+  categories.forEach(cat => {
+    const catScores = allScores
+      .filter(item => normalizeText(item.category) === normalizeText(cat))
+      .sort((a, b) => b.points - a.points)
+      .slice(0, 3); // Top 3 podium
+
+    if (catScores.length === 0) return;
+
+    const section = document.createElement("div");
+    section.className = "toppers-category-section";
+
+    section.innerHTML = `
+      <div class="category-section-title">
+        <span class="material-symbols-rounded" style="color:var(--watermelon)">military_tech</span>
+        ${escapeHTML(cat)} Category Toppers
       </div>
-      <span class="team-score-num">
-        ${top.points}
-        <small>PTS</small>
-      </span>
+      <div class="podium-container" id="podium-${normalizeText(cat)}"></div>
     `;
 
-    container.appendChild(item);
+    container.appendChild(section);
+
+    const podiumWrapper = section.querySelector(`#podium-${normalizeText(cat)}`);
+
+    const orderedPodium = [];
+    if (catScores[1]) orderedPodium.push({ item: catScores[1], rank: 2, badgeClass: "badge-2nd" });
+    if (catScores[0]) orderedPodium.push({ item: catScores[0], rank: 1, badgeClass: "badge-1st" });
+    if (catScores[2]) orderedPodium.push({ item: catScores[2], rank: 3, badgeClass: "badge-3rd" });
+
+    orderedPodium.forEach(podium => {
+      const { item, rank, badgeClass } = podium;
+      const initial = item.name.charAt(0).toUpperCase();
+
+      const card = document.createElement("div");
+      card.className = `podium-card rank-${rank}`;
+
+      card.innerHTML = `
+        ${rank === 1 ? '<span class="material-symbols-rounded podium-crown">workspace_premium</span>' : ''}
+        <span class="podium-badge ${badgeClass}">${rank === 1 ? '1st Place' : rank === 2 ? '2nd Place' : '3rd Place'}</span>
+        <div class="podium-avatar">${initial}</div>
+        <div class="podium-name">${escapeHTML(item.name)}</div>
+        <div class="podium-team">${escapeHTML(item.group)} · Chest ${escapeHTML(item.chest)}</div>
+        <div class="podium-points">${item.points} PTS</div>
+      `;
+
+      podiumWrapper.appendChild(card);
+    });
   });
 }
 
