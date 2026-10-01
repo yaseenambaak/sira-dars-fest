@@ -30,13 +30,15 @@
   <!-- Firebase App & Firestore SDK (CDN) -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <!-- Firebase Storage SDK (CDN for Gallery Image Uploads - Point 10) -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
 
 </head>
 
 <body>
 
   <!-- =====================================================
-       HEADER
+        HEADER
   ====================================================== -->
 
   <header class="app-header">
@@ -102,7 +104,7 @@
 
 
   <!-- =====================================================
-       MAIN
+        MAIN
   ====================================================== -->
 
   <main class="page-container">
@@ -129,7 +131,7 @@
       </h2>
 
       <p>
-        Manage teams, candidates, programmes, updates and
+        Manage teams, candidates, programmes, updates, gallery photos and
         published results from one place.
       </p>
 
@@ -261,7 +263,7 @@
       </div>
 
       <p class="section-description">
-        Publish announcements and important festival updates.
+        Publish announcements and important festival updates. (Date and time populate automatically).
       </p>
 
       <form
@@ -290,15 +292,14 @@
           <div class="form-group">
 
             <label for="updateTime">
-              Date / Time
+              Date / Time (Auto)
             </label>
 
             <input
               type="text"
               id="updateTime"
-              placeholder="Example: 30 Sep 2026 • 5:00 PM"
+              placeholder="Auto-generated timestamp"
               maxlength="100"
-              required
             >
 
           </div>
@@ -404,7 +405,7 @@
 
 
     <!-- ===================================================
-         CANDIDATES
+         CANDIDATES (Updated: Removed 'General' option - Point 2)
     ==================================================== -->
 
     <section class="admin-card">
@@ -500,10 +501,6 @@
                 Select Category
               </option>
 
-              <option value="General">
-                General
-              </option>
-
               <option value="Junior">
                 Junior
               </option>
@@ -571,7 +568,7 @@
       </div>
 
       <p class="section-description">
-        Add and manage festival programmes.
+        Add and manage festival programmes. Status is optional.
       </p>
 
       <form
@@ -673,11 +670,10 @@
         <div class="form-group">
 
           <label for="progStatus">
-            Status
+            Status (Optional)
           </label>
 
           <select id="progStatus">
-
             <option value="Upcoming">
               Upcoming
             </option>
@@ -725,7 +721,7 @@
 
 
     <!-- ===================================================
-         RESULTS
+         GALLERY HIGHLIGHTS UPLOAD (Added for Point 10)
     ==================================================== -->
 
     <section class="admin-card">
@@ -736,6 +732,113 @@
 
           <div class="section-number">
             05
+          </div>
+
+          <h2>
+            Gallery Highlights (Memories)
+          </h2>
+
+        </div>
+
+      </div>
+
+      <p class="section-description">
+        Upload fest moments and stage photos to gallery highlights using Firebase Storage.
+      </p>
+
+      <form
+        id="galleryForm"
+        class="admin-form"
+      >
+
+        <div class="form-grid-2">
+
+          <div class="form-group">
+
+            <label for="galleryTitle">
+              Photo Title
+            </label>
+
+            <input
+              type="text"
+              id="galleryTitle"
+              placeholder="Fest Moments"
+              maxlength="50"
+              required
+            >
+
+          </div>
+
+          <div class="form-group">
+
+            <label for="gallerySubtitle">
+              Subtitle
+            </label>
+
+            <input
+              type="text"
+              id="gallerySubtitle"
+              placeholder="Stage Performances"
+              maxlength="50"
+              required
+            >
+
+          </div>
+
+        </div>
+
+        <div class="form-group">
+
+          <label for="galleryImageFile">
+            Select Image File
+          </label>
+
+          <input
+            type="file"
+            id="galleryImageFile"
+            accept="image/*"
+            required
+          >
+
+        </div>
+
+        <button
+          type="submit"
+          class="primary-button"
+        >
+          <span class="material-symbols-rounded">
+            upload
+          </span>
+
+          Upload Photo to Gallery
+        </button>
+
+      </form>
+
+      <div class="list-header">
+        Uploaded Gallery Photos
+      </div>
+
+      <div
+        class="admin-list"
+        id="adminGalleryList"
+      ></div>
+
+    </section>
+
+
+    <!-- ===================================================
+         RESULTS (Updated Points: 5, 3, 1 & Removed 'Competition' - Points 4 & 5)
+    ==================================================== -->
+
+    <section class="admin-card">
+
+      <div class="section-heading">
+
+        <div>
+
+          <div class="section-number">
+            06
           </div>
 
           <h2>
@@ -793,10 +896,6 @@
                 Group
               </option>
 
-              <option value="Competition">
-                Competition
-              </option>
-
             </select>
 
           </div>
@@ -804,7 +903,7 @@
         </div>
 
 
-        <!-- POINTS -->
+        <!-- POINTS (Updated to 5, 3, 1 - Point 4) -->
 
         <div class="points-box">
 
@@ -820,7 +919,7 @@
               <input
                 type="number"
                 id="pts1"
-                value="10"
+                value="5"
                 min="0"
                 step="1"
               >
@@ -833,7 +932,7 @@
               <input
                 type="number"
                 id="pts2"
-                value="7"
+                value="3"
                 min="0"
                 step="1"
               >
@@ -846,7 +945,7 @@
               <input
                 type="number"
                 id="pts3"
-                value="5"
+                value="1"
                 min="0"
                 step="1"
               >
@@ -1199,7 +1298,7 @@
 
 
     <!-- ===================================================
-         BACKUP
+         BACKUP (Updated with Excel / JSON export - Point 14)
     ==================================================== -->
 
     <section class="admin-card">
@@ -1209,7 +1308,7 @@
         <div>
 
           <div class="section-number">
-            06
+            07
           </div>
 
           <h2>
@@ -1221,7 +1320,7 @@
       </div>
 
       <p class="section-description">
-        Export all festival data as a JSON backup or restore
+        Export all festival data as an Excel/JSON backup or restore
         data from an existing backup.
       </p>
 
@@ -1236,7 +1335,7 @@
             download
           </span>
 
-          Export Backup
+          Export Backup (Excel/JSON)
         </button>
 
         <label
@@ -1274,7 +1373,7 @@
         <div>
 
           <div class="section-number">
-            07
+            08
           </div>
 
           <h2>
@@ -1308,7 +1407,7 @@
 
 
   <!-- =====================================================
-       TOAST
+        TOAST
   ====================================================== -->
 
   <div
@@ -1331,6 +1430,7 @@
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
+    const storage = firebase.storage();
   </script>
 
   <script src="admin.js"></script>
