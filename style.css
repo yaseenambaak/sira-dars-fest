@@ -752,7 +752,6 @@ a {
   margin-top: 24px;
 }
 
-/* ടീമിന്റെ പേര് കൂടുതൽ ആകർഷകവും വലുതുമാക്കി */
 .topper-name {
   font-size: clamp(2.2rem, 7.5vw, 3.8rem);
   font-weight: 900;
@@ -772,7 +771,6 @@ a {
   margin-top: 12px;
 }
 
-/* പോയിന്റുകൾ കൂടുതൽ വലുതും ബോൾഡും പ്രീമിയവുമാക്കി */
 .topper-points {
   font-size: clamp(3rem, 10vw, 4.5rem);
   color: #fde047;
@@ -858,6 +856,134 @@ a {
   border-radius: var(--radius-sm);
   color: var(--text-sub);
   font-size: .72rem;
+}
+
+
+/* =========================
+   INDIVIDUAL TOPPERS PODIUM (Added for photo design style)
+========================= */
+
+.toppers-category-section {
+  margin-bottom: 28px;
+}
+
+.category-section-title {
+  font-size: 0.85rem;
+  font-weight: 900;
+  margin-bottom: 12px;
+  color: var(--text-dark);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.podium-container {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  align-items: flex-end;
+}
+
+.podium-card {
+  background: white;
+  border: 1px solid var(--border-clean);
+  border-radius: var(--radius-md);
+  padding: 16px 10px;
+  text-align: center;
+  box-shadow: var(--shadow);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.podium-card.rank-1 {
+  background: linear-gradient(180deg, #fffbeb 0%, #ffffff 100%);
+  border-color: #fde047;
+  transform: translateY(-6px);
+  box-shadow: 0 12px 30px rgba(253, 224, 71, 0.2);
+}
+
+.podium-crown {
+  color: #f59e0b;
+  font-size: 22px;
+  margin-bottom: -4px;
+}
+
+.podium-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #f1f5f9;
+  color: var(--text-dark);
+  display: grid;
+  place-items: center;
+  font-weight: 900;
+  font-size: 1.1rem;
+  margin: 6px 0;
+  border: 2px solid var(--border-clean);
+}
+
+.podium-card.rank-1 .podium-avatar {
+  width: 56px;
+  height: 56px;
+  border-color: #fde047;
+  background: #fef08a;
+  color: #854d0e;
+}
+
+.podium-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 20px;
+  font-size: 0.52rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+  letter-spacing: 0.05em;
+}
+
+.badge-1st {
+  background: #fef08a;
+  color: #854d0e;
+}
+
+.badge-2nd {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.badge-3rd {
+  background: #ffedd5;
+  color: #9a3412;
+}
+
+.podium-name {
+  font-size: 0.72rem;
+  font-weight: 900;
+  margin-top: 3px;
+  word-break: break-word;
+  line-height: 1.2;
+}
+
+.podium-team {
+  font-size: 0.58rem;
+  color: var(--text-sub);
+  font-weight: 700;
+  margin-top: 2px;
+}
+
+.podium-points {
+  margin-top: 8px;
+  padding: 3px 8px;
+  background: #f8fafc;
+  border: 1px solid var(--border-clean);
+  border-radius: 6px;
+  font-size: 0.65rem;
+  font-weight: 900;
+  color: var(--watermelon);
 }
 
 
