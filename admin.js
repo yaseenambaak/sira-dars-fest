@@ -20,7 +20,6 @@ const GRADE_POINTS = Object.freeze({
   C: 1
 });
 
-// Local cache for admin operations
 let adminCache = {
   festTeams: [...DEFAULT_TEAMS],
   festCandidates: [],
@@ -32,7 +31,7 @@ let adminCache = {
 
 
 /* =========================================================
-AUTHENTICATION
+   AUTHENTICATION
 ========================================================= */
 
 if (sessionStorage.getItem(STORAGE.AUTH) !== "true") {
@@ -41,7 +40,7 @@ if (sessionStorage.getItem(STORAGE.AUTH) !== "true") {
 
 
 /* =========================================================
-DOM HELPERS
+   DOM HELPERS
 ========================================================= */
 
 function $(id) {
@@ -50,7 +49,7 @@ function $(id) {
 
 
 /* =========================================================
-FIREBASE DATA SYNC & FETCH HELPERS
+   FIREBASE DATA SYNC & FETCH HELPERS
 ========================================================= */
 
 function initAdminFirebaseSync(callback) {
@@ -60,7 +59,7 @@ function initAdminFirebaseSync(callback) {
   }
 
   let loadedCount = 0;
-  const totalCollections = 6; // Updated to 6 including gallery
+  const totalCollections = 6;
 
   function checkReady() {
     loadedCount++;
@@ -69,7 +68,6 @@ function initAdminFirebaseSync(callback) {
     }
   }
 
-  // Teams
   db.collection("festData").doc("teams").onSnapshot((doc) => {
     if (doc.exists && doc.data().items) {
       adminCache.festTeams = doc.data().items;
@@ -79,31 +77,26 @@ function initAdminFirebaseSync(callback) {
     checkReady();
   });
 
-  // Programmes
   db.collection("festData").doc("programmes").onSnapshot((doc) => {
     adminCache.festProgrammes = (doc.exists && doc.data().items) ? doc.data().items : [];
     checkReady();
   });
 
-  // Candidates
   db.collection("festData").doc("candidates").onSnapshot((doc) => {
     adminCache.festCandidates = (doc.exists && doc.data().items) ? doc.data().items : [];
     checkReady();
   });
 
-  // Results
   db.collection("festData").doc("results").onSnapshot((doc) => {
     adminCache.festResults = (doc.exists && doc.data().items) ? doc.data().items : [];
     checkReady();
   });
 
-  // Updates
   db.collection("festData").doc("updates").onSnapshot((doc) => {
     adminCache.festUpdates = (doc.exists && doc.data().items) ? doc.data().items : [];
     checkReady();
   });
 
-  // Gallery (Point 10)
   db.collection("festData").doc("gallery").onSnapshot((doc) => {
     adminCache.festGallery = (doc.exists && doc.data().items) ? doc.data().items : [];
     checkReady();
@@ -161,7 +154,7 @@ function setJSON(key, value) {
 
 
 /* =========================================================
-SAFE HTML
+   SAFE HTML & TOAST
 ========================================================= */
 
 function escapeHTML(value) {
@@ -172,11 +165,6 @@ function escapeHTML(value) {
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
 }
-
-
-/* =========================================================
-TOAST
-========================================================= */
 
 function showToast(message, type = "success") {
   const toast = $("toast");
@@ -190,11 +178,6 @@ function showToast(message, type = "success") {
     toast.className = "toast";
   }, 3000);
 }
-
-
-/* =========================================================
-DEFAULT DATA & CURRENT DATE/TIME HELPER (Point 1)
-========================================================= */
 
 function getCurrentDateTimeString() {
   const now = new Date();
@@ -222,7 +205,7 @@ function ensureDefaultTeams() {
 
 
 /* =========================================================
-TEAMS
+   TEAMS MANAGEMENT
 ========================================================= */
 
 function loadTeamDataToUI() {
@@ -237,7 +220,6 @@ function loadTeamDataToUI() {
   populateTeamSelect("res2Team");
   populateTeamSelect("res3Team");
 }
-
 
 function populateTeamSelect(id, selectedValue = "") {
   const select = $(id);
@@ -261,7 +243,6 @@ function populateTeamSelect(id, selectedValue = "") {
     select.appendChild(option);
   });
 }
-
 
 function saveAllTeams() {
   const names = [
@@ -321,7 +302,7 @@ function saveAllTeams() {
 
 
 /* =========================================================
-UPDATES
+   UPDATES
 ========================================================= */
 
 function loadAdminUpdatesList() {
@@ -356,7 +337,6 @@ function loadAdminUpdatesList() {
   });
 }
 
-
 function deleteUpdate(index) {
   const updates = getJSON("festUpdates", []);
   if (!updates[index]) return;
@@ -371,7 +351,7 @@ function deleteUpdate(index) {
 
 
 /* =========================================================
-CANDIDATES
+   CANDIDATES
 ========================================================= */
 
 function loadAdminCandidatesList() {
@@ -404,7 +384,6 @@ function loadAdminCandidatesList() {
   });
 }
 
-
 function deleteCandidate(index) {
   const candidates = getJSON("festCandidates", []);
   const candidate = candidates[index];
@@ -418,7 +397,6 @@ function deleteCandidate(index) {
   refreshCandidateDatalists();
   showToast("Candidate deleted.");
 }
-
 
 function editCandidate(index) {
   const candidates = getJSON("festCandidates", []);
@@ -443,7 +421,7 @@ function editCandidate(index) {
 
 
 /* =========================================================
-PROGRAMMES
+   PROGRAMMES
 ========================================================= */
 
 function loadAdminProgrammesList() {
@@ -479,7 +457,6 @@ function loadAdminProgrammesList() {
   populateResultDropdowns();
 }
 
-
 function deleteProgramme(index) {
   const programmes = getJSON("festProgrammes", []);
   const programme = programmes[index];
@@ -501,7 +478,6 @@ function deleteProgramme(index) {
   loadAdminProgrammesList();
   showToast("Programme deleted.");
 }
-
 
 function editProgramme(index) {
   const programmes = getJSON("festProgrammes", []);
@@ -525,7 +501,7 @@ function editProgramme(index) {
 
 
 /* =========================================================
-GALLERY HIGHLIGHTS UPLOAD (Point 10)
+   GALLERY UPLOAD
 ========================================================= */
 
 function loadAdminGalleryList() {
@@ -556,7 +532,6 @@ function loadAdminGalleryList() {
     container.appendChild(row);
   });
 }
-
 
 function uploadGalleryPhoto() {
   const title = $("galleryTitle").value.trim();
@@ -599,7 +574,6 @@ function uploadGalleryPhoto() {
   });
 }
 
-
 function deleteGalleryPhoto(index) {
   const gallery = getJSON("festGallery", []);
   if (!gallery[index]) return;
@@ -614,7 +588,7 @@ function deleteGalleryPhoto(index) {
 
 
 /* =========================================================
-PROGRAMME KEYS
+   PROGRAMME KEYS & RESULTS
 ========================================================= */
 
 function makeProgrammeKey(title, category) {
@@ -627,11 +601,6 @@ function makeProgrammeKeyFromResult(result) {
   if (!match) return value.toUpperCase();
   return makeProgrammeKey(match[1], match[2]);
 }
-
-
-/* =========================================================
-RESULT PROGRAMME DROPDOWN
-========================================================= */
 
 function populateResultDropdowns() {
   const select = $("progSelectInput");
@@ -659,11 +628,6 @@ function populateResultDropdowns() {
 
   refreshCandidateDatalists();
 }
-
-
-/* =========================================================
-CANDIDATE SEARCH
-========================================================= */
 
 function getSelectedProgrammeCategory() {
   const select = $("progSelectInput");
@@ -722,11 +686,6 @@ function setupCandidateSearch(searchId, chestId, nameId, teamId) {
   search.addEventListener("focus", refreshCandidateDatalists);
 }
 
-
-/* =========================================================
-RESULT HELPERS
-========================================================= */
-
 function getResultPlace(prefix) {
   const name = $(`${prefix}Name`).value.trim();
   if (!name) {
@@ -752,11 +711,6 @@ function validateResultPlace(place, placeName) {
   }
   return true;
 }
-
-
-/* =========================================================
-TEAM POINT CALCULATION (Updated: Group event point exclusion option - Point 6)
-========================================================= */
 
 function calculateTeamPoints(results) {
   const teams = ensureDefaultTeams();
@@ -784,11 +738,6 @@ function calculateTeamPoints(results) {
   setJSON("festTeams", teams);
   return teams;
 }
-
-
-/* =========================================================
-PUBLISH RESULT
-========================================================= */
 
 function publishResult() {
   const programme = $("progSelectInput").value.trim();
@@ -862,11 +811,6 @@ function publishResult() {
   return true;
 }
 
-
-/* =========================================================
-RESULTS LIST
-========================================================= */
-
 function loadAdminResultsList() {
   const container = $("adminResultsList");
   if (!container) return;
@@ -900,7 +844,6 @@ function loadAdminResultsList() {
   });
 }
 
-
 function deleteResult(index) {
   const results = getJSON("festResults", []);
   const result = results[index];
@@ -919,7 +862,7 @@ function deleteResult(index) {
 
 
 /* =========================================================
-BACKUP (Updated with Excel/JSON Export - Point 14)
+   BACKUP & RESET
 ========================================================= */
 
 function createBackupData() {
@@ -1008,11 +951,6 @@ function importFestBackup(event) {
   reader.readAsText(file);
 }
 
-
-/* =========================================================
-RESET
-========================================================= */
-
 function resetFestData() {
   const first = confirm(
     "WARNING\n\n" +
@@ -1040,11 +978,6 @@ function resetFestData() {
   }, 700);
 }
 
-
-/* =========================================================
-EMPTY MESSAGE
-========================================================= */
-
 function emptyMessage(message) {
   const element = document.createElement("div");
   element.className = "empty-message";
@@ -1054,13 +987,12 @@ function emptyMessage(message) {
 
 
 /* =========================================================
-FORM EVENTS
+   EVENT SETUP & INITIALIZATION
 ========================================================= */
 
 function setupForms() {
   $("saveTeamsButton")?.addEventListener("click", saveAllTeams);
 
-  // Gallery upload form listener (Point 10)
   $("galleryForm")?.addEventListener("submit", event => {
     event.preventDefault();
     uploadGalleryPhoto();
@@ -1071,7 +1003,7 @@ function setupForms() {
 
     const title = $("updateTitle").value.trim();
     const desc = $("updateDesc").value.trim();
-    const time = $("updateTime").value.trim() || getCurrentDateTimeString(); // Auto current date/time (Point 1)
+    const time = $("updateTime").value.trim() || getCurrentDateTimeString();
     const type = $("updateType").value;
     const important = $("updateImportant").checked;
 
@@ -1141,7 +1073,7 @@ function setupForms() {
     const category = $("progCat").value;
     const venue = $("progVenue").value.trim();
     const time = $("progTime").value.trim();
-    const status = $("progStatus").value.trim() || "Upcoming"; // Optional status (Point 3)
+    const status = $("progStatus").value.trim() || "Upcoming";
 
     if (!title || !category || !venue || !time) {
       showToast("Please complete all programme fields.", "error");
@@ -1178,11 +1110,6 @@ function setupForms() {
     publishResult();
   });
 }
-
-
-/* =========================================================
-LIST EVENT DELEGATION
-========================================================= */
 
 function setupListActions() {
   $("adminUpdatesList")?.addEventListener("click", event => {
@@ -1235,11 +1162,6 @@ function setupListActions() {
   });
 }
 
-
-/* =========================================================
-LOGOUT
-========================================================= */
-
 function setupLogout() {
   $("logoutButton")?.addEventListener("click", () => {
     if (!confirm("Logout from the admin panel?")) return;
@@ -1248,21 +1170,11 @@ function setupLogout() {
   });
 }
 
-
-/* =========================================================
-BACKUP CONTROLS
-========================================================= */
-
 function setupBackupControls() {
   $("exportBackupButton")?.addEventListener("click", exportFestBackup);
   $("importFile")?.addEventListener("change", importFestBackup);
   $("resetButton")?.addEventListener("click", resetFestData);
 }
-
-
-/* =========================================================
-PROGRAMME CHANGE
-========================================================= */
 
 function setupProgrammeChange() {
   $("progSelectInput")?.addEventListener("change", () => {
@@ -1277,23 +1189,16 @@ function setupProgrammeChange() {
   });
 }
 
-
-/* =========================================================
-INITIALIZATION
-========================================================= */
-
 function initializeAdminPanel() {
   if (sessionStorage.getItem(STORAGE.AUTH) !== "true") {
     window.location.replace("admin-login.html");
     return;
   }
 
-  // Set default current date/time in updates input automatically
   if ($("updateTime")) {
     $("updateTime").value = getCurrentDateTimeString();
   }
 
-  // Fetch data from Firebase first, then load the UI once data is synced
   initAdminFirebaseSync(() => {
     ensureDefaultTeams();
     loadTeamDataToUI();
@@ -1316,11 +1221,6 @@ function initializeAdminPanel() {
     refreshCandidateDatalists();
   });
 }
-
-
-/* =========================================================
-START
-========================================================= */
 
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", initializeAdminPanel);
