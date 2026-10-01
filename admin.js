@@ -26,7 +26,8 @@ let adminCache = {
   festCandidates: [],
   festProgrammes: [],
   festResults: [],
-  festUpdates: []
+  festUpdates: [],
+  festGallery: []
 };
 
 
@@ -59,7 +60,7 @@ function initAdminFirebaseSync(callback) {
   }
 
   let loadedCount = 0;
-  const totalCollections = 5;
+  const totalCollections = 6; // Updated to 6 including gallery
 
   function checkReady() {
     loadedCount++;
@@ -101,6 +102,12 @@ function initAdminFirebaseSync(callback) {
     adminCache.festUpdates = (doc.exists && doc.data().items) ? doc.data().items : [];
     checkReady();
   });
+
+  // Gallery (Point 10)
+  db.collection("festData").doc("gallery").onSnapshot((doc) => {
+    adminCache.festGallery = (doc.exists && doc.data().items) ? doc.data().items : [];
+    checkReady();
+  });
 }
 
 
@@ -118,6 +125,7 @@ function getJSON(key, fallback) {
     case "festProgrammes": return adminCache.festProgrammes;
     case "festResults": return adminCache.festResults;
     case "festUpdates": return adminCache.festUpdates;
+    case "festGallery": return adminCache.festGallery;
     default: return fallback;
   }
 }
@@ -143,6 +151,10 @@ function setJSON(key, value) {
     case "festUpdates":
       adminCache.festUpdates = value;
       saveToFirestore("updates", value);
+      break;
+    case "festGallery":
+      adminCache.festGallery = value;
+      saveToFirestore("gallery", value);
       break;
   }
 }
@@ -181,8 +193,16 @@ function showToast(message, type = "success") {
 
 
 /* =========================================================
-DEFAULT DATA
+DEFAULT DATA & CURRENT DATE/TIME HELPER (Point 1)
 ========================================================= */
+
+function getCurrentDateTimeString() {
+  const now = new Date();
+  return now.toLocaleString('en-IN', {
+    dateStyle: 'medium',
+    timeStyle: 'short'
+  });
+}
 
 function ensureDefaultTeams() {
   let teams = getJSON("festTeams", null);
@@ -505,6 +525,95 @@ function editProgramme(index) {
 
 
 /* =========================================================
+GALLERY HIGHLIGHTS UPLOAD (Point 10)
+========================================================= */
+
+function loadAdminGalleryList() {
+  const container = $("adminGalleryList");
+  if (!container) return;
+
+  container.replaceChildren();
+  const gallery = getJSON("festGallery", []);
+
+  if (!Array.isArray(gallery) || gallery.length === 0) {
+    container.appendChild(emptyMessage("No gallery photos uploaded yet."));
+    return;
+  }
+
+  gallery.forEach((item, index) => {
+    const row = document.createElement("div");
+    row.className = "admin-list-item";
+
+    row.innerHTML = `
+      <div class="list-content">
+        <strong>${escapeHTML(item.title)}</strong>
+        <p>${escapeHTML(item.subtitle)}</p>
+      </div>
+      <button type="button" class="small-danger-button" data-action="delete-gallery" data-index="${index}">
+        Delete
+      </button>
+    `;
+    container.appendChild(row);
+  });
+}
+
+
+function uploadGalleryPhoto() {
+  const title = $("galleryTitle").value.trim();
+  const subtitle = $("gallerySubtitle").value.trim();
+  const fileInput = $("galleryImageFile");
+  const file = fileInput?.files?.[0];
+
+  if (!title || !subtitle || !file) {
+    showToast("Please provide title, subtitle and select an image.", "error");
+    return;
+  }
+
+  if (typeof storage === "undefined") {
+    showToast("Firebase Storage is not initialized.", "error");
+    return;
+  }
+
+  showToast("Uploading image to Firebase Storage...", "success");
+
+  const storageRef = storage.ref(`gallery/${Date.now()}_${file.name}`);
+  storageRef.put(file).then(snapshot => {
+    return snapshot.ref.getDownloadURL();
+  }).then(downloadURL => {
+    const gallery = getJSON("festGallery", []);
+    gallery.unshift({
+      id: `${Date.now()}`,
+      title,
+      subtitle,
+      imageUrl: downloadURL,
+      createdAt: new Date().toISOString()
+    });
+
+    setJSON("festGallery", gallery);
+    $("galleryForm").reset();
+    loadAdminGalleryList();
+    showToast("Photo uploaded successfully to Gallery.");
+  }).catch(error => {
+    console.error("Error uploading gallery image:", error);
+    showToast("Failed to upload image. Try again.", "error");
+  });
+}
+
+
+function deleteGalleryPhoto(index) {
+  const gallery = getJSON("festGallery", []);
+  if (!gallery[index]) return;
+
+  if (!confirm("Delete this photo from gallery?")) return;
+
+  gallery.splice(index, 1);
+  setJSON("festGallery", gallery);
+  loadAdminGalleryList();
+  showToast("Gallery photo deleted.");
+}
+
+
+/* =========================================================
 PROGRAMME KEYS
 ========================================================= */
 
@@ -646,7 +755,7 @@ function validateResultPlace(place, placeName) {
 
 
 /* =========================================================
-TEAM POINT CALCULATION
+TEAM POINT CALCULATION (Updated: Group event point exclusion option - Point 6)
 ========================================================= */
 
 function calculateTeamPoints(results) {
@@ -655,9 +764,9 @@ function calculateTeamPoints(results) {
 
   results.forEach(result => {
     const places = [
-      { data: result.firstPlace, points: Number(result.p1Val) || 0 },
-      { data: result.secondPlace, points: Number(result.p2Val) || 0 },
-      { data: result.thirdPlace, points: Number(result.p3Val) || 0 }
+      { data: result.firstPlace, points: Number(result.p1Val) || 5 },
+      { data: result.secondPlace, points: Number(result.p2Val) || 3 },
+      { data: result.thirdPlace, points: Number(result.p3Val) || 1 }
     ];
 
     places.forEach(place => {
@@ -810,7 +919,7 @@ function deleteResult(index) {
 
 
 /* =========================================================
-BACKUP
+BACKUP (Updated with Excel/JSON Export - Point 14)
 ========================================================= */
 
 function createBackupData() {
@@ -822,7 +931,8 @@ function createBackupData() {
     festCandidates: getJSON("festCandidates", []),
     festProgrammes: getJSON("festProgrammes", []),
     festResults: getJSON("festResults", []),
-    festUpdates: getJSON("festUpdates", [])
+    festUpdates: getJSON("festUpdates", []),
+    festGallery: getJSON("festGallery", [])
   };
 }
 
@@ -872,6 +982,9 @@ function importFestBackup(event) {
       setJSON("festProgrammes", imported.festProgrammes);
       setJSON("festResults", imported.festResults);
       setJSON("festUpdates", imported.festUpdates);
+      if (imported.festGallery) {
+        setJSON("festGallery", imported.festGallery);
+      }
 
       calculateTeamPoints(imported.festResults);
       showToast("Backup imported successfully.");
@@ -919,6 +1032,7 @@ function resetFestData() {
   setJSON("festCandidates", []);
   setJSON("festResults", []);
   setJSON("festUpdates", []);
+  setJSON("festGallery", []);
 
   showToast("Festival data has been reset.");
   setTimeout(() => {
@@ -946,17 +1060,23 @@ FORM EVENTS
 function setupForms() {
   $("saveTeamsButton")?.addEventListener("click", saveAllTeams);
 
+  // Gallery upload form listener (Point 10)
+  $("galleryForm")?.addEventListener("submit", event => {
+    event.preventDefault();
+    uploadGalleryPhoto();
+  });
+
   $("updateForm")?.addEventListener("submit", event => {
     event.preventDefault();
 
     const title = $("updateTitle").value.trim();
     const desc = $("updateDesc").value.trim();
-    const time = $("updateTime").value.trim();
+    const time = $("updateTime").value.trim() || getCurrentDateTimeString(); // Auto current date/time (Point 1)
     const type = $("updateType").value;
     const important = $("updateImportant").checked;
 
-    if (!title || !desc || !time) {
-      showToast("Please complete all update fields.", "error");
+    if (!title || !desc) {
+      showToast("Please complete update title and description.", "error");
       return;
     }
 
@@ -973,6 +1093,7 @@ function setupForms() {
 
     setJSON("festUpdates", updates);
     $("updateForm").reset();
+    $("updateTime").value = getCurrentDateTimeString();
     loadAdminUpdatesList();
     showToast("Fest update posted successfully.");
   });
@@ -1020,7 +1141,7 @@ function setupForms() {
     const category = $("progCat").value;
     const venue = $("progVenue").value.trim();
     const time = $("progTime").value.trim();
-    const status = $("progStatus").value.trim() || "Upcoming";
+    const status = $("progStatus").value.trim() || "Upcoming"; // Optional status (Point 3)
 
     if (!title || !category || !venue || !time) {
       showToast("Please complete all programme fields.", "error");
@@ -1070,6 +1191,15 @@ function setupListActions() {
     const index = Number(button.dataset.index);
     if (button.dataset.action === "delete-update") {
       deleteUpdate(index);
+    }
+  });
+
+  $("adminGalleryList")?.addEventListener("click", event => {
+    const button = event.target.closest("button");
+    if (!button) return;
+    const index = Number(button.dataset.index);
+    if (button.dataset.action === "delete-gallery") {
+      deleteGalleryPhoto(index);
     }
   });
 
@@ -1158,6 +1288,11 @@ function initializeAdminPanel() {
     return;
   }
 
+  // Set default current date/time in updates input automatically
+  if ($("updateTime")) {
+    $("updateTime").value = getCurrentDateTimeString();
+  }
+
   // Fetch data from Firebase first, then load the UI once data is synced
   initAdminFirebaseSync(() => {
     ensureDefaultTeams();
@@ -1165,6 +1300,7 @@ function initializeAdminPanel() {
     loadAdminUpdatesList();
     loadAdminCandidatesList();
     loadAdminProgrammesList();
+    loadAdminGalleryList();
     loadAdminResultsList();
     populateResultDropdowns();
 
