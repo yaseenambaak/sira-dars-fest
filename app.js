@@ -12,6 +12,7 @@ const GRADE_POINTS = Object.freeze({
 
 let currentSelectedCategory = "ALL";
 let currentView = "home";
+let currentIndividualCategory = "Sub Junior"; // Default selected category for individual toppers
 
 // Global state variables synced with Firebase
 let festCache = {
@@ -565,7 +566,7 @@ function renderCandidates(candidates, results) {
 
 
 /* ============================================================
-   CANDIDATE MODAL & POINTS LOGIC (Updated Points 5, 3, 1 & Group Exclusion)
+   CANDIDATE MODAL & POINTS LOGIC
 ============================================================ */
 
 function calculateCandidatePoints(candidate, results) {
@@ -786,7 +787,7 @@ function initializeModalEvents() {
 
 
 /* ============================================================
-   INDIVIDUAL TOPPERS (Categorized by Sub-Junior, Junior, Senior with Podium Badges)
+   INDIVIDUAL TOPPERS (Categorized with Selection Buttons & Podium)
 ============================================================ */
 
 function renderIndividualToppers(candidates, results) {
@@ -814,33 +815,54 @@ function renderIndividualToppers(candidates, results) {
 
   const categories = ["Sub Junior", "Junior", "Senior"];
 
+  if (!categories.includes(currentIndividualCategory)) {
+    currentIndividualCategory = categories[0];
+  }
+
+  // Create Selection Buttons Wrapper
+  const filterWrapper = document.createElement("div");
+  filterWrapper.className = "category-filters";
+  filterWrapper.style.marginBottom = "16px";
+
   categories.forEach(cat => {
-    const catScores = allScores
-      .filter(item => normalizeText(item.category) === normalizeText(cat))
-      .sort((a, b) => b.points - a.points)
-      .slice(0, 3); // Top 3 podium
+    const isActive = normalizeText(cat) === normalizeText(currentIndividualCategory);
+    const btn = document.createElement("button");
+    btn.className = `cat-filter-btn ${isActive ? "active" : ""}`;
+    btn.textContent = cat;
+    
+    btn.addEventListener("click", () => {
+      currentIndividualCategory = cat;
+      renderIndividualToppers(getCandidates(), getResults());
+    });
 
-    if (catScores.length === 0) return;
+    filterWrapper.appendChild(btn);
+  });
 
-    const section = document.createElement("div");
-    section.className = "toppers-category-section";
+  container.appendChild(filterWrapper);
 
-    section.innerHTML = `
-      <div class="category-section-title">
-        <span class="material-symbols-rounded" style="color:var(--watermelon)">military_tech</span>
-        ${escapeHTML(cat)} Category Toppers
+  // Render Podium for the Selected Category Only
+  const selectedCatScores = allScores
+    .filter(item => normalizeText(item.category) === normalizeText(currentIndividualCategory))
+    .sort((a, b) => b.points - a.points)
+    .slice(0, 3); // Top 3 podium
+
+  const podiumSection = document.createElement("div");
+  podiumSection.className = "toppers-category-section";
+
+  if (selectedCatScores.length === 0) {
+    podiumSection.innerHTML = `
+      <div class="empty-state">
+        No individual points recorded for ${escapeHTML(currentIndividualCategory)} category yet.
       </div>
-      <div class="podium-container" id="podium-${normalizeText(cat)}"></div>
     `;
-
-    container.appendChild(section);
-
-    const podiumWrapper = section.querySelector(`#podium-${normalizeText(cat)}`);
+  } else {
+    const podiumGrid = document.createElement("div");
+    podiumGrid.className = "podium-container";
 
     const orderedPodium = [];
-    if (catScores[1]) orderedPodium.push({ item: catScores[1], rank: 2, badgeClass: "badge-2nd" });
-    if (catScores[0]) orderedPodium.push({ item: catScores[0], rank: 1, badgeClass: "badge-1st" });
-    if (catScores[2]) orderedPodium.push({ item: catScores[2], rank: 3, badgeClass: "badge-3rd" });
+    if (selectedCatScores[1]) orderedPodium.push({ item: selectedCatScores[1], rank: 2, badgeClass: "badge-2nd" });
+    if (selectedCatScores[0]) orderedPodium.push({ item: selectedCatScores[0], rank: 1, badgeClass: "badge-1st" });
+    if (selectedCatScores[2]) orderedPodium.push({ item: selectedCatScores[2], rank: 3, badgeClass: "badge-3rd" });
 
     orderedPodium.forEach(podium => {
       const { item, rank, badgeClass } = podium;
@@ -858,9 +880,13 @@ function renderIndividualToppers(candidates, results) {
         <div class="podium-points">${item.points} PTS</div>
       `;
 
-      podiumWrapper.appendChild(card);
+      podiumGrid.appendChild(card);
     });
-  });
+
+    podiumSection.appendChild(podiumGrid);
+  }
+
+  container.appendChild(podiumSection);
 }
 
 
