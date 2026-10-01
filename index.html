@@ -61,11 +61,7 @@
 
       <div class="brand-group">
         <div class="brand-logo">S</div>
-
-        <div class="brand-text">
-          <strong>SIRA DARS FEST</strong>
-          <span>IDSA • 2026</span>
-        </div>
+        <!-- Removed text "IDSA • 2026" as requested -->
       </div>
 
       <div class="header-actions">
@@ -138,7 +134,7 @@
             Knowledge • Creativity • Talent • Character
           </p>
 
-          <button class="hero-button" onclick="switchView('programmes')">
+          <button class="hero-button" onclick="switchView('leaderboard')">
             Explore Festival
             <span class="material-symbols-rounded">arrow_forward</span>
           </button>
@@ -514,7 +510,7 @@
   </div>
 
 
-  <!-- MOBILE NAV -->
+  <!-- MOBILE NAV (Updated: replaced updates with programmes) -->
   <nav class="bottom-nav">
     <div class="nav-inner">
 
@@ -528,14 +524,14 @@
         <span class="nav-label">Score</span>
       </button>
 
-      <button class="nav-item" id="bNavUpdates" onclick="switchView('updates')">
-        <span class="material-symbols-rounded nav-icon">notifications</span>
-        <span class="nav-label">Updates</span>
-      </button>
-
       <button class="nav-item" id="bNavProgrammes" onclick="switchView('programmes')">
         <span class="material-symbols-rounded nav-icon">event_note</span>
         <span class="nav-label">Events</span>
+      </button>
+
+      <button class="nav-item" id="bNavCandidates" onclick="switchView('candidates')">
+        <span class="material-symbols-rounded nav-icon">groups</span>
+        <span class="nav-label">Candidates</span>
       </button>
 
       <button class="nav-item" id="bNavResults" onclick="switchView('results')">
