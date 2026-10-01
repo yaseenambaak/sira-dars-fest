@@ -14,7 +14,7 @@ let currentSelectedCategory = "ALL";
 let currentCandidateCategory = "ALL";
 let currentProgrammeCategory = "ALL";
 let currentView = "home";
-let currentIndividualCategory = "Sub Junior"; // Default selected category for individual toppers
+let currentIndividualCategory = "Sub-Junior";
 
 // Global state variables synced with Firebase
 let festCache = {
@@ -73,7 +73,7 @@ function normalizeText(value) {
   return String(value ?? "")
     .trim()
     .toLowerCase()
-    .replace(/[\s-]+/g, ""); // Removes spaces and hyphens for robust matching (e.g. "sub-junior" == "sub junior")
+    .replace(/[\s-]+/g, "");
 }
 
 function escapeHTML(value) {
@@ -92,7 +92,6 @@ function setText(id, value) {
   }
 }
 
-// Helper for Current Date & Time (Update Point 1)
 function getCurrentDateTimeString() {
   const now = new Date();
   return now.toLocaleString('en-IN', {
@@ -113,9 +112,7 @@ window.addEventListener(
     initializeSearch();
     initializeModalEvents();
     
-    // Start listening to real-time updates from Firestore
     initFirebaseSync();
-
     switchView("home");
   }
 );
@@ -127,7 +124,6 @@ function initFirebaseSync() {
     return;
   }
 
-  // Real-time listener for Teams
   db.collection("festData").doc("teams").onSnapshot((doc) => {
     if (doc.exists && doc.data().items) {
       festCache.festTeams = doc.data().items;
@@ -135,7 +131,6 @@ function initFirebaseSync() {
     loadAndRenderAllData();
   }, (err) => console.error("Error syncing teams:", err));
 
-  // Real-time listener for Programmes
   db.collection("festData").doc("programmes").onSnapshot((doc) => {
     if (doc.exists && doc.data().items) {
       festCache.festProgrammes = doc.data().items;
@@ -143,7 +138,6 @@ function initFirebaseSync() {
     loadAndRenderAllData();
   }, (err) => console.error("Error syncing programmes:", err));
 
-  // Real-time listener for Candidates
   db.collection("festData").doc("candidates").onSnapshot((doc) => {
     if (doc.exists && doc.data().items) {
       festCache.festCandidates = doc.data().items;
@@ -151,7 +145,6 @@ function initFirebaseSync() {
     loadAndRenderAllData();
   }, (err) => console.error("Error syncing candidates:", err));
 
-  // Real-time listener for Results
   db.collection("festData").doc("results").onSnapshot((doc) => {
     if (doc.exists && doc.data().items) {
       festCache.festResults = doc.data().items;
@@ -159,7 +152,6 @@ function initFirebaseSync() {
     loadAndRenderAllData();
   }, (err) => console.error("Error syncing results:", err));
 
-  // Real-time listener for Updates
   db.collection("festData").doc("updates").onSnapshot((doc) => {
     if (doc.exists && doc.data().items) {
       festCache.festUpdates = doc.data().items;
@@ -167,7 +159,6 @@ function initFirebaseSync() {
     loadAndRenderAllData();
   }, (err) => console.error("Error syncing updates:", err));
 
-  // Real-time listener for Gallery Highlights (Firebase Storage / DB mapping)
   db.collection("festData").doc("gallery").onSnapshot((doc) => {
     if (doc.exists && doc.data().items) {
       festCache.festGallery = doc.data().items;
@@ -183,19 +174,15 @@ function initFirebaseSync() {
 
 function initializeSplash() {
   const splash = document.getElementById("splashScreen");
-  if (!splash) {
-    return;
-  }
+  if (!splash) return;
 
   window.setTimeout(() => {
     splash.classList.add("fade-out");
-
     window.setTimeout(() => {
       if (splash && splash.parentNode) {
         splash.remove();
       }
     }, 700);
-
   }, 2400);
 }
 
@@ -267,7 +254,7 @@ function switchView(viewName) {
   const navMap = {
     home: "bNavHome",
     leaderboard: "bNavStandings",
-    updates: null, // Replaced with Programmes in bottom nav
+    updates: null,
     programmes: "bNavProgrammes",
     candidates: "bNavCandidates",
     results: "bNavResults"
@@ -357,7 +344,7 @@ function renderLeaderboard(teams) {
 
 
 /* ============================================================
-   GALLERY HIGHLIGHTS RENDER & UPLOAD SUPPORT (Point 10)
+   GALLERY HIGHLIGHTS
 ============================================================ */
 
 function renderGallery(galleryItems) {
@@ -365,9 +352,7 @@ function renderGallery(galleryItems) {
   if (!galleryGrid) return;
 
   const safeGallery = safeArray(galleryItems);
-  if (safeGallery.length === 0) {
-    return;
-  }
+  if (safeGallery.length === 0) return;
 
   galleryGrid.innerHTML = safeGallery.map((item) => `
     <div class="gallery-card" style="background-image: url('${escapeHTML(item.imageUrl)}'); background-size: cover; background-position: center;">
@@ -408,40 +393,18 @@ function renderUpdates(updates) {
     }
 
     card.innerHTML = `
-      <div style="
-        display:flex;
-        justify-content:space-between;
-        gap:10px;
-        margin-bottom:8px;
-      ">
-        <span class="chest-badge"
-          style="
-            background:var(--watermelon-soft);
-            color:var(--watermelon);
-          "
-        >
+      <div style="display:flex; justify-content:space-between; gap:10px; margin-bottom:8px;">
+        <span class="chest-badge" style="background:var(--watermelon-soft); color:var(--watermelon);">
           ${escapeHTML(update.type || "Notice")}
         </span>
-        <span style="
-          font-size:.65rem;
-          color:var(--text-sub);
-          font-weight:700;
-        ">
+        <span style="font-size:.65rem; color:var(--text-sub); font-weight:700;">
           ${escapeHTML(update.time || getCurrentDateTimeString())}
         </span>
       </div>
-      <h4 style="
-        font-size:.95rem;
-        font-weight:900;
-        margin-bottom:5px;
-      ">
+      <h4 style="font-size:.95rem; font-weight:900; margin-bottom:5px;">
         ${escapeHTML(update.title || "Announcement")}
       </h4>
-      <p style="
-        font-size:.75rem;
-        color:var(--text-sub);
-        line-height:1.6;
-      ">
+      <p style="font-size:.75rem; color:var(--text-sub); line-height:1.6;">
         ${escapeHTML(update.desc || "")}
       </p>
     `;
@@ -502,20 +465,11 @@ function renderProgrammes(programmes) {
           ${escapeHTML(programme.title || "Untitled Programme")}
           ${programme.category ? ` (${escapeHTML(programme.category)})` : ""}
         </strong>
-        <div style="
-          font-size:.68rem;
-          color:var(--text-sub);
-          margin-top:5px;
-        ">
+        <div style="font-size:.68rem; color:var(--text-sub); margin-top:5px;">
           Venue: ${escapeHTML(programme.venue || "TBA")} · ${escapeHTML(programme.time || "TBA")}
         </div>
       </div>
-      <span class="chest-badge"
-        style="
-          background:var(--watermelon-soft);
-          color:var(--watermelon);
-        "
-      >
+      <span class="chest-badge" style="background:var(--watermelon-soft); color:var(--watermelon);">
         ${escapeHTML(programme.status || "Upcoming")}
       </span>
     `;
@@ -573,30 +527,19 @@ function renderCandidates(candidates, results) {
 
     card.innerHTML = `
       <div class="team-lead-meta">
-        <span class="chest-badge"
-          style="
-            background:var(--watermelon-soft);
-            color:var(--watermelon);
-          "
-        >
+        <span class="chest-badge" style="background:var(--watermelon-soft); color:var(--watermelon);">
           ${escapeHTML(candidate.chest || "—")}
         </span>
         <div style="min-width:0">
           <span class="team-title-text">
             ${escapeHTML(candidate.name || "Unnamed Candidate")}
           </span>
-          <div style="
-            font-size:.64rem;
-            color:var(--text-sub);
-            margin-top:3px;
-          ">
+          <div style="font-size:.64rem; color:var(--text-sub); margin-top:3px;">
             Team: <b>${escapeHTML(candidate.group || "—")}</b> · ${escapeHTML(candidate.category || "—")}
           </div>
         </div>
       </div>
-      <span class="material-symbols-rounded"
-        style="color:var(--text-sub)"
-      >
+      <span class="material-symbols-rounded" style="color:var(--text-sub)">
         chevron_right
       </span>
     `;
@@ -691,31 +634,13 @@ function openCandidatePosterModal(candidate, results) {
 
   if (achievements.length > 0) {
     achievementsHTML = `
-      <div style="
-        margin-top:18px;
-        border-top:1px solid rgba(255,255,255,.1);
-        padding-top:13px;
-      ">
-        <div style="
-          color:#facc15;
-          font-size:.65rem;
-          font-weight:900;
-          margin-bottom:8px;
-        ">
+      <div style="margin-top:18px; border-top:1px solid rgba(255,255,255,.1); padding-top:13px;">
+        <div style="color:#facc15; font-size:.65rem; font-weight:900; margin-bottom:8px;">
           ACHIEVEMENTS & POINTS
         </div>
         ${achievements.map(
           (item) => `
-            <div style="
-              display:flex;
-              justify-content:space-between;
-              gap:10px;
-              padding:9px;
-              border-radius:9px;
-              background:rgba(255,255,255,.06);
-              margin-bottom:5px;
-              font-size:.7rem;
-            ">
+            <div style="display:flex; justify-content:space-between; gap:10px; padding:9px; border-radius:9px; background:rgba(255,255,255,.06); margin-bottom:5px; font-size:.7rem;">
               <span>
                 ${escapeHTML(item.program)} — ${escapeHTML(item.position)}${item.isGroup ? '(Group)' : ''}
               </span>
@@ -729,57 +654,24 @@ function openCandidatePosterModal(candidate, results) {
     `;
   } else {
     achievementsHTML = `
-      <div style="
-        margin-top:18px;
-        padding-top:13px;
-        border-top:1px dashed rgba(255,255,255,.12);
-        text-align:center;
-        color:#94a3b8;
-        font-size:.7rem;
-      ">
+      <div style="margin-top:18px; padding-top:13px; border-top:1px dashed rgba(255,255,255,.12); text-align:center; color:#94a3b8; font-size:.7rem;">
         No results published yet for this candidate.
       </div>
     `;
   }
 
   modalBody.innerHTML = `
-    <span style="
-      display:inline-block;
-      background:rgba(255,67,89,.18);
-      color:#ff6c7d;
-      padding:4px 8px;
-      border-radius:7px;
-      font-size:.6rem;
-      font-weight:900;
-    ">
+    <span style="display:inline-block; background:rgba(255,67,89,.18); color:#ff6c7d; padding:4px 8px; border-radius:7px; font-size:.6rem; font-weight:900;">
       IDSA FEST OFFICIAL
     </span>
-    <h3 id="modalTitle" style="
-      font-size:1.4rem;
-      margin-top:9px;
-      font-weight:900;
-      padding-right:35px;
-      word-break:break-word;
-    ">
+    <h3 id="modalTitle" style="font-size:1.4rem; margin-top:9px; font-weight:900; padding-right:35px; word-break:break-word;">
       ${escapeHTML(candidate.name || "Unnamed Candidate")}
     </h3>
-    <div style="
-      margin-top:4px;
-      color:#94a3b8;
-      font-size:.7rem;
-      font-weight:700;
-    ">
+    <div style="margin-top:4px; color:#94a3b8; font-size:.7rem; font-weight:700;">
       Team: <b style="color:#facc15">${escapeHTML(candidate.group || "—")}</b> · Category: ${escapeHTML(candidate.category || "—")} · Chest: ${escapeHTML(candidate.chest || "—")}
     </div>
     ${achievementsHTML}
-    <div style="
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      margin-top:16px;
-      padding-top:10px;
-      border-top:1px solid rgba(255,255,255,.1);
-    ">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px; padding-top:10px; border-top:1px solid rgba(255,255,255,.1);">
       <span style="color:#94a3b8; font-size:.65rem;">
         Sira Dars Fest Live Portal
       </span>
@@ -832,7 +724,7 @@ function initializeModalEvents() {
 
 
 /* ============================================================
-   INDIVIDUAL TOPPERS (Categorized with Selection Buttons & Podium)
+   INDIVIDUAL TOPPERS
 ============================================================ */
 
 function renderIndividualToppers(candidates, results) {
@@ -864,7 +756,6 @@ function renderIndividualToppers(candidates, results) {
     currentIndividualCategory = categories[0];
   }
 
-  // Create Selection Buttons Wrapper
   const filterWrapper = document.createElement("div");
   filterWrapper.className = "category-filters";
   filterWrapper.style.marginBottom = "16px";
@@ -885,11 +776,10 @@ function renderIndividualToppers(candidates, results) {
 
   container.appendChild(filterWrapper);
 
-  // Render Podium for the Selected Category Only
   const selectedCatScores = allScores
     .filter(item => normalizeText(item.category) === normalizeText(currentIndividualCategory))
     .sort((a, b) => b.points - a.points)
-    .slice(0, 3); // Top 3 podium
+    .slice(0, 3);
 
   const podiumSection = document.createElement("div");
   podiumSection.className = "toppers-category-section";
@@ -936,7 +826,7 @@ function renderIndividualToppers(candidates, results) {
 
 
 /* ============================================================
-   EXCEL / CSV BACKUP EXPORT FUNCTION (Point 14)
+   EXCEL / CSV BACKUP EXPORT FUNCTION
 ============================================================ */
 
 function exportFestDataToExcel() {
@@ -1056,20 +946,8 @@ function renderResults(results) {
       }
 
       winnersHTML += `
-        <div class="winner-entry"
-          style="
-            margin-bottom:7px;
-            padding:8px;
-            background:var(--bg);
-            border:1px solid var(--border-clean);
-            border-radius:10px;
-          "
-        >
-          <div style="
-            display:flex;
-            align-items:center;
-            gap:6px;
-          ">
+        <div class="winner-entry" style="margin-bottom:7px; padding:8px; background:var(--bg); border:1px solid var(--border-clean); border-radius:10px;">
+          <div style="display:flex; align-items:center; gap:6px;">
             <span class="w-pos-tag ${position.cls}">
               ${position.tag}
             </span>
@@ -1090,12 +968,7 @@ function renderResults(results) {
       <div class="res-prog-title">
         ${escapeHTML(result.programName || "Untitled Event")}
       </div>
-      <div style="
-        font-size:.63rem;
-        color:var(--text-sub);
-        font-weight:700;
-        margin-bottom:9px;
-      ">
+      <div style="font-size:.63rem; color:var(--text-sub); font-weight:700; margin-bottom:9px;">
         Event Type: ${escapeHTML(result.eventType || "Individual")}
       </div>
       ${winnersHTML || `<div style="font-size:.7rem; color:var(--text-sub);">No winners recorded.</div>`}
@@ -1115,7 +988,6 @@ function initializeSearch() {
   const candidateSearch = document.getElementById("searchCandidate");
   const resultSearch = document.getElementById("searchResult");
 
-  /* PROGRAMMES */
   programSearch?.addEventListener("input", event => {
     const keyword = normalizeText(event.target.value);
     const programmes = getProgrammes();
@@ -1135,7 +1007,6 @@ function initializeSearch() {
     renderProgrammes(filtered);
   });
 
-  /* CANDIDATES */
   candidateSearch?.addEventListener("input", event => {
     const keyword = normalizeText(event.target.value);
     const candidates = getCandidates();
@@ -1156,7 +1027,6 @@ function initializeSearch() {
     renderCandidates(filtered, results);
   });
 
-  /* RESULTS */
   resultSearch?.addEventListener("input", event => {
     const keyword = normalizeText(event.target.value);
     const results = getResults();
