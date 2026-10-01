@@ -1,19 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-
   <meta charset="UTF-8">
-
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  >
-
-  <meta
-    name="theme-color"
-    content="#0f172a"
-  >
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0f172a">
 
   <title>Admin Panel • Sira Dars Fest</title>
 
@@ -30,1395 +20,481 @@
   <!-- Firebase App & Firestore SDK (CDN) -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-  <!-- Firebase Storage SDK (CDN for Gallery Image Uploads - Point 10) -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
-
 </head>
 
 <body>
 
-  <!-- =====================================================
-        HEADER
-  ====================================================== -->
-
   <header class="app-header">
-
     <div class="header-inner">
-
       <div class="brand-group">
-
         <div class="brand-icon">
-          <span class="material-symbols-rounded">
-            admin_panel_settings
-          </span>
+          <span class="material-symbols-rounded">admin_panel_settings</span>
         </div>
-
         <div>
-
-          <h1 class="main-title">
-            Sira Dars <span>Fest</span>
-          </h1>
-
+          <h1 class="main-title">Sira Dars <span>Fest</span></h1>
           <div class="admin-status">
-
             <span class="status-dot"></span>
-
             ADMIN CONTROL PANEL
-
           </div>
-
         </div>
-
       </div>
 
       <div class="header-actions">
-
-        <a
-          href="index.html"
-          class="header-button"
-        >
-          <span class="material-symbols-rounded">
-            language
-          </span>
-
+        <a href="index.html" class="header-button">
+          <span class="material-symbols-rounded">language</span>
           <span>Website</span>
         </a>
 
-        <button
-          type="button"
-          class="header-button logout-button"
-          id="logoutButton"
-        >
-          <span class="material-symbols-rounded">
-            logout
-          </span>
-
+        <button type="button" class="header-button logout-button" id="logoutButton">
+          <span class="material-symbols-rounded">logout</span>
           <span>Logout</span>
         </button>
-
       </div>
-
     </div>
-
   </header>
-
-
-  <!-- =====================================================
-        MAIN
-  ====================================================== -->
 
   <main class="page-container">
 
-
-    <!-- ===================================================
-         HERO
-    ==================================================== -->
-
     <section class="admin-hero">
-
       <div class="hero-badge">
-
-        <span class="material-symbols-rounded">
-          dashboard
-        </span>
-
+        <span class="material-symbols-rounded">dashboard</span>
         FESTIVAL MANAGEMENT
-
       </div>
-
-      <h2>
-        Sira Dars Fest Admin Panel
-      </h2>
-
-      <p>
-        Manage teams, candidates, programmes, updates, gallery photos and
-        published results from one place.
-      </p>
-
+      <h2>Sira Dars Fest Admin Panel</h2>
+      <p>Manage teams, candidates, programmes, updates, gallery photos and published results from one place.</p>
     </section>
 
-
-    <!-- ===================================================
-         TEAMS
-    ==================================================== -->
-
+    <!-- TEAMS -->
     <section class="admin-card">
-
       <div class="section-heading">
-
         <div>
-
-          <div class="section-number">
-            01
-          </div>
-
-          <h2>
-            Manage Teams
-          </h2>
-
+          <div class="section-number">01</div>
+          <h2>Manage Teams</h2>
         </div>
-
       </div>
+      <p class="section-description">Update the three festival team names. Existing team points will be preserved when names are changed.</p>
 
-      <p class="section-description">
-        Update the three festival team names.
-        Existing team points will be preserved when names
-        are changed.
-      </p>
-
-      <form
-        id="teamsForm"
-        class="admin-form"
-      >
-
+      <form id="teamsForm" class="admin-form">
         <div class="team-grid">
-
           <div class="team-input">
-
-            <label for="teamName1">
-              TEAM 01
-            </label>
-
-            <input
-              type="text"
-              id="teamName1"
-              placeholder="Team name"
-              maxlength="40"
-              required
-            >
-
+            <label for="teamName1">TEAM 01</label>
+            <input type="text" id="teamName1" placeholder="Team name" maxlength="40" required>
           </div>
-
           <div class="team-input">
-
-            <label for="teamName2">
-              TEAM 02
-            </label>
-
-            <input
-              type="text"
-              id="teamName2"
-              placeholder="Team name"
-              maxlength="40"
-              required
-            >
-
+            <label for="teamName2">TEAM 02</label>
+            <input type="text" id="teamName2" placeholder="Team name" maxlength="40" required>
           </div>
-
           <div class="team-input">
-
-            <label for="teamName3">
-              TEAM 03
-            </label>
-
-            <input
-              type="text"
-              id="teamName3"
-              placeholder="Team name"
-              maxlength="40"
-              required
-            >
-
+            <label for="teamName3">TEAM 03</label>
+            <input type="text" id="teamName3" placeholder="Team name" maxlength="40" required>
           </div>
-
         </div>
-
-        <button
-          type="button"
-          class="primary-button"
-          id="saveTeamsButton"
-        >
-          <span class="material-symbols-rounded">
-            save
-          </span>
-
+        <button type="button" class="primary-button" id="saveTeamsButton">
+          <span class="material-symbols-rounded">save</span>
           Save Team Names
         </button>
-
       </form>
-
     </section>
 
-
-    <!-- ===================================================
-         UPDATES
-    ==================================================== -->
-
+    <!-- UPDATES -->
     <section class="admin-card">
-
       <div class="section-heading">
-
         <div>
-
-          <div class="section-number">
-            02
-          </div>
-
-          <h2>
-            Fest Updates
-          </h2>
-
+          <div class="section-number">02</div>
+          <h2>Fest Updates</h2>
         </div>
-
       </div>
+      <p class="section-description">Publish announcements and important festival updates. (Date and time populate automatically).</p>
 
-      <p class="section-description">
-        Publish announcements and important festival updates. (Date and time populate automatically).
-      </p>
-
-      <form
-        id="updateForm"
-        class="admin-form"
-      >
-
+      <form id="updateForm" class="admin-form">
         <div class="form-grid-2">
-
           <div class="form-group">
-
-            <label for="updateTitle">
-              Update Title
-            </label>
-
-            <input
-              type="text"
-              id="updateTitle"
-              placeholder="Example: Registration Started"
-              maxlength="100"
-              required
-            >
-
+            <label for="updateTitle">Update Title</label>
+            <input type="text" id="updateTitle" placeholder="Example: Registration Started" maxlength="100" required>
           </div>
-
           <div class="form-group">
-
-            <label for="updateTime">
-              Date / Time (Auto)
-            </label>
-
-            <input
-              type="text"
-              id="updateTime"
-              placeholder="Auto-generated timestamp"
-              maxlength="100"
-            >
-
+            <label for="updateTime">Date / Time (Auto)</label>
+            <input type="text" id="updateTime" placeholder="Auto-generated timestamp" maxlength="100">
           </div>
-
         </div>
 
         <div class="form-grid-2">
-
           <div class="form-group">
-
-            <label for="updateType">
-              Type
-            </label>
-
+            <label for="updateType">Type</label>
             <select id="updateType">
-
-              <option value="General">
-                General
-              </option>
-
-              <option value="Announcement">
-                Announcement
-              </option>
-
-              <option value="Schedule">
-                Schedule
-              </option>
-
-              <option value="Registration">
-                Registration
-              </option>
-
-              <option value="Result">
-                Result
-              </option>
-
-              <option value="Notice">
-                Notice
-              </option>
-
+              <option value="General">General</option>
+              <option value="Announcement">Announcement</option>
+              <option value="Schedule">Schedule</option>
+              <option value="Registration">Registration</option>
+              <option value="Result">Result</option>
+              <option value="Notice">Notice</option>
             </select>
-
           </div>
-
           <div class="checkbox-wrapper">
-
             <label class="checkbox-label">
-
-              <input
-                type="checkbox"
-                id="updateImportant"
-              >
-
-              <span>
-                Mark as important
-              </span>
-
+              <input type="checkbox" id="updateImportant">
+              <span>Mark as important</span>
             </label>
-
           </div>
-
         </div>
 
         <div class="form-group">
-
-          <label for="updateDesc">
-            Description
-          </label>
-
-          <textarea
-            id="updateDesc"
-            placeholder="Write the update details..."
-            maxlength="500"
-            required
-          ></textarea>
-
+          <label for="updateDesc">Description</label>
+          <textarea id="updateDesc" placeholder="Write the update details..." maxlength="500" required></textarea>
         </div>
 
-        <button
-          type="submit"
-          class="primary-button"
-        >
-          <span class="material-symbols-rounded">
-            campaign
-          </span>
-
+        <button type="submit" class="primary-button">
+          <span class="material-symbols-rounded">campaign</span>
           Publish Update
         </button>
-
       </form>
 
-
-      <div class="list-header">
-        Published Updates
-      </div>
-
-      <div
-        class="admin-list"
-        id="adminUpdatesList"
-      ></div>
-
+      <div class="list-header">Published Updates</div>
+      <div class="admin-list" id="adminUpdatesList"></div>
     </section>
 
-
-    <!-- ===================================================
-         CANDIDATES (Updated: Removed 'General' option - Point 2)
-    ==================================================== -->
-
+    <!-- CANDIDATES -->
     <section class="admin-card">
-
       <div class="section-heading">
-
         <div>
-
-          <div class="section-number">
-            03
-          </div>
-
-          <h2>
-            Candidate Registration
-          </h2>
-
+          <div class="section-number">03</div>
+          <h2>Candidate Registration</h2>
         </div>
-
       </div>
+      <p class="section-description">Register participants and assign their team and category.</p>
 
-      <p class="section-description">
-        Register participants and assign their team and category.
-      </p>
-
-      <form
-        id="candidateForm"
-        class="admin-form"
-      >
-
+      <form id="candidateForm" class="admin-form">
         <div class="form-grid-2">
-
           <div class="form-group">
-
-            <label for="candChest">
-              Chest Number
-            </label>
-
-            <input
-              type="text"
-              id="candChest"
-              placeholder="Example: 101"
-              maxlength="30"
-              required
-            >
-
+            <label for="candChest">Chest Number</label>
+            <input type="text" id="candChest" placeholder="Example: 101" maxlength="30" required>
           </div>
-
           <div class="form-group">
-
-            <label for="candName">
-              Candidate Name
-            </label>
-
-            <input
-              type="text"
-              id="candName"
-              placeholder="Full name"
-              maxlength="100"
-              required
-            >
-
+            <label for="candName">Candidate Name</label>
+            <input type="text" id="candName" placeholder="Full name" maxlength="100" required>
           </div>
-
         </div>
 
         <div class="form-grid-2">
-
           <div class="form-group">
-
-            <label for="candGroup">
-              Team / Group
-            </label>
-
-            <select
-              id="candGroup"
-              required
-            ></select>
-
+            <label for="candGroup">Team / Group</label>
+            <select id="candGroup" required></select>
           </div>
-
           <div class="form-group">
-
-            <label for="candCategory">
-              Category
-            </label>
-
-            <select
-              id="candCategory"
-              required
-            >
-
-              <option value="">
-                Select Category
-              </option>
-
-              <option value="Junior">
-                Junior
-              </option>
-
-              <option value="Senior">
-                Senior
-              </option>
-
-              <option value="Sub Junior">
-                Sub Junior
-              </option>
-
+            <label for="candCategory">Category</label>
+            <select id="candCategory" required>
+              <option value="">Select Category</option>
+              <option value="Sub-Junior">Sub-Junior</option>
+              <option value="Junior">Junior</option>
+              <option value="Senior">Senior</option>
+              <option value="General">General</option>
             </select>
-
           </div>
-
         </div>
 
-        <button
-          type="submit"
-          class="primary-button"
-        >
-          <span class="material-symbols-rounded">
-            person_add
-          </span>
-
+        <button type="submit" class="primary-button">
+          <span class="material-symbols-rounded">person_add</span>
           Register Candidate
         </button>
-
       </form>
 
-
-      <div class="list-header">
-        Registered Candidates
-      </div>
-
-      <div
-        class="admin-list"
-        id="adminCandidatesList"
-      ></div>
-
+      <div class="list-header">Registered Candidates</div>
+      <div class="admin-list" id="adminCandidatesList"></div>
     </section>
 
-
-    <!-- ===================================================
-         PROGRAMMES
-    ==================================================== -->
-
+    <!-- PROGRAMMES -->
     <section class="admin-card">
-
       <div class="section-heading">
-
         <div>
-
-          <div class="section-number">
-            04
-          </div>
-
-          <h2>
-            Programme Management
-          </h2>
-
+          <div class="section-number">04</div>
+          <h2>Programme Management</h2>
         </div>
-
       </div>
+      <p class="section-description">Add and manage festival programmes. Status is optional.</p>
 
-      <p class="section-description">
-        Add and manage festival programmes. Status is optional.
-      </p>
-
-      <form
-        id="programmeForm"
-        class="admin-form"
-      >
-
+      <form id="programmeForm" class="admin-form">
         <div class="form-grid-2">
-
           <div class="form-group">
-
-            <label for="progTitle">
-              Programme Title
-            </label>
-
-            <input
-              type="text"
-              id="progTitle"
-              placeholder="Example: Quran Recitation"
-              maxlength="120"
-              required
-            >
-
+            <label for="progTitle">Programme Title</label>
+            <input type="text" id="progTitle" placeholder="Example: Quran Recitation" maxlength="120" required>
           </div>
-
           <div class="form-group">
-
-            <label for="progCat">
-              Category
-            </label>
-
-            <select
-              id="progCat"
-              required
-            >
-
-              <option value="">
-                Select Category
-              </option>
-
-              <option value="General">
-                General
-              </option>
-
-              <option value="Junior">
-                Junior
-              </option>
-
-              <option value="Senior">
-                Senior
-              </option>
-
-              <option value="Sub Junior">
-                Sub Junior
-              </option>
-
+            <label for="progCat">Category</label>
+            <select id="progCat" required>
+              <option value="">Select Category</option>
+              <option value="Sub-Junior">Sub-Junior</option>
+              <option value="Junior">Junior</option>
+              <option value="Senior">Senior</option>
+              <option value="General">General</option>
             </select>
-
           </div>
-
         </div>
 
         <div class="form-grid-2">
-
           <div class="form-group">
-
-            <label for="progVenue">
-              Venue
-            </label>
-
-            <input
-              type="text"
-              id="progVenue"
-              placeholder="Main Hall"
-              maxlength="100"
-              required
-            >
-
+            <label for="progVenue">Venue</label>
+            <input type="text" id="progVenue" placeholder="Main Hall" maxlength="100" required>
           </div>
-
           <div class="form-group">
-
-            <label for="progTime">
-              Time
-            </label>
-
-            <input
-              type="text"
-              id="progTime"
-              placeholder="10:00 AM"
-              maxlength="80"
-              required
-            >
-
+            <label for="progTime">Time</label>
+            <input type="text" id="progTime" placeholder="10:00 AM" maxlength="80" required>
           </div>
-
         </div>
 
         <div class="form-group">
-
-          <label for="progStatus">
-            Status (Optional)
-          </label>
-
+          <label for="progStatus">Status (Optional)</label>
           <select id="progStatus">
-            <option value="Upcoming">
-              Upcoming
-            </option>
-
-            <option value="Live">
-              Live
-            </option>
-
-            <option value="Completed">
-              Completed
-            </option>
-
-            <option value="Cancelled">
-              Cancelled
-            </option>
-
+            <option value="Upcoming">Upcoming</option>
+            <option value="Live">Live</option>
+            <option value="Completed">Completed</option>
+            <option value="Cancelled">Cancelled</option>
           </select>
-
         </div>
 
-        <button
-          type="submit"
-          class="primary-button"
-        >
-          <span class="material-symbols-rounded">
-            add_circle
-          </span>
-
+        <button type="submit" class="primary-button">
+          <span class="material-symbols-rounded">add_circle</span>
           Add Programme
         </button>
-
       </form>
 
-
-      <div class="list-header">
-        Programmes
-      </div>
-
-      <div
-        class="admin-list"
-        id="adminProgrammesList"
-      ></div>
-
+      <div class="list-header">Programmes</div>
+      <div class="admin-list" id="adminProgrammesList"></div>
     </section>
 
-
-    <!-- ===================================================
-         GALLERY HIGHLIGHTS UPLOAD (Added for Point 10)
-    ==================================================== -->
-
+    <!-- GALLERY -->
     <section class="admin-card">
-
       <div class="section-heading">
-
         <div>
-
-          <div class="section-number">
-            05
-          </div>
-
-          <h2>
-            Gallery Highlights (Memories)
-          </h2>
-
+          <div class="section-number">05</div>
+          <h2>Gallery Highlights (Memories)</h2>
         </div>
-
       </div>
+      <p class="section-description">Upload fest moments and stage photos to gallery highlights using Firebase Storage.</p>
 
-      <p class="section-description">
-        Upload fest moments and stage photos to gallery highlights using Firebase Storage.
-      </p>
-
-      <form
-        id="galleryForm"
-        class="admin-form"
-      >
-
+      <form id="galleryForm" class="admin-form">
         <div class="form-grid-2">
-
           <div class="form-group">
-
-            <label for="galleryTitle">
-              Photo Title
-            </label>
-
-            <input
-              type="text"
-              id="galleryTitle"
-              placeholder="Fest Moments"
-              maxlength="50"
-              required
-            >
-
+            <label for="galleryTitle">Photo Title</label>
+            <input type="text" id="galleryTitle" placeholder="Fest Moments" maxlength="50" required>
           </div>
-
           <div class="form-group">
-
-            <label for="gallerySubtitle">
-              Subtitle
-            </label>
-
-            <input
-              type="text"
-              id="gallerySubtitle"
-              placeholder="Stage Performances"
-              maxlength="50"
-              required
-            >
-
+            <label for="gallerySubtitle">Subtitle</label>
+            <input type="text" id="gallerySubtitle" placeholder="Stage Performances" maxlength="50" required>
           </div>
-
         </div>
 
         <div class="form-group">
-
-          <label for="galleryImageFile">
-            Select Image File
-          </label>
-
-          <input
-            type="file"
-            id="galleryImageFile"
-            accept="image/*"
-            required
-          >
-
+          <label for="galleryImageFile">Select Image File</label>
+          <input type="file" id="galleryImageFile" accept="image/*" required>
         </div>
 
-        <button
-          type="submit"
-          class="primary-button"
-        >
-          <span class="material-symbols-rounded">
-            upload
-          </span>
-
+        <button type="submit" class="primary-button">
+          <span class="material-symbols-rounded">upload</span>
           Upload Photo to Gallery
         </button>
-
       </form>
 
-      <div class="list-header">
-        Uploaded Gallery Photos
-      </div>
-
-      <div
-        class="admin-list"
-        id="adminGalleryList"
-      ></div>
-
+      <div class="list-header">Uploaded Gallery Photos</div>
+      <div class="admin-list" id="adminGalleryList"></div>
     </section>
 
-
-    <!-- ===================================================
-         RESULTS (Updated Points: 5, 3, 1 & Removed 'Competition' - Points 4 & 5)
-    ==================================================== -->
-
+    <!-- RESULTS -->
     <section class="admin-card">
-
       <div class="section-heading">
-
         <div>
-
-          <div class="section-number">
-            06
-          </div>
-
-          <h2>
-            Publish Results
-          </h2>
-
+          <div class="section-number">06</div>
+          <h2>Publish Results</h2>
         </div>
-
       </div>
+      <p class="section-description">Select a programme, choose the winners and publish the result. Team points are automatically recalculated.</p>
 
-      <p class="section-description">
-        Select a programme, choose the winners and publish
-        the result. Team points are automatically recalculated.
-      </p>
-
-      <form
-        id="resultForm"
-        class="admin-form"
-      >
-
+      <form id="resultForm" class="admin-form">
         <div class="form-grid-2">
-
           <div class="form-group">
-
-            <label for="progSelectInput">
-              Programme
-            </label>
-
-            <select
-              id="progSelectInput"
-              required
-            >
-
-              <option value="">
-                Select Programme
-              </option>
-
+            <label for="progSelectInput">Programme</label>
+            <select id="progSelectInput" required>
+              <option value="">Select Programme</option>
             </select>
-
           </div>
-
           <div class="form-group">
-
-            <label for="eventType">
-              Event Type
-            </label>
-
+            <label for="eventType">Event Type</label>
             <select id="eventType">
-
-              <option value="Individual">
-                Individual
-              </option>
-
-              <option value="Group">
-                Group
-              </option>
-
+              <option value="Individual">Individual</option>
+              <option value="Group">Group</option>
             </select>
-
           </div>
-
         </div>
-
-
-        <!-- POINTS (Updated to 5, 3, 1 - Point 4) -->
 
         <div class="points-box">
-
-          <strong>
-            Place Points
-          </strong>
-
+          <strong>Place Points</strong>
           <div class="points-grid">
-
-            <label>
-              1st
-
-              <input
-                type="number"
-                id="pts1"
-                value="5"
-                min="0"
-                step="1"
-              >
-
-            </label>
-
-            <label>
-              2nd
-
-              <input
-                type="number"
-                id="pts2"
-                value="3"
-                min="0"
-                step="1"
-              >
-
-            </label>
-
-            <label>
-              3rd
-
-              <input
-                type="number"
-                id="pts3"
-                value="1"
-                min="0"
-                step="1"
-              >
-
-            </label>
-
+            <label>1st <input type="number" id="pts1" value="5" min="0" step="1"></label>
+            <label>2nd <input type="number" id="pts2" value="3" min="0" step="1"></label>
+            <label>3rd <input type="number" id="pts3" value="1" min="0" step="1"></label>
           </div>
-
-          <p class="points-note">
-            Grade bonus: A = 5 points, B = 3 points,
-            C = 1 point.
-          </p>
-
+          <p class="points-note">Grade bonus: A = 5 points, B = 3 points, C = 1 point.</p>
         </div>
-
 
         <!-- FIRST -->
-
         <div class="result-row first">
-
           <div class="place-label">
-
             <span>1</span>
-
-            <strong>
-              1st Place
-            </strong>
-
+            <strong>1st Place</strong>
           </div>
-
           <div class="result-fields">
-
             <div class="form-group">
-
-              <label for="res1Search">
-                Candidate
-              </label>
-
-              <input
-                type="text"
-                id="res1Search"
-                list="res1SearchList"
-                placeholder="Search chest number"
-                autocomplete="off"
-              >
-
+              <label for="res1Search">Candidate</label>
+              <input type="text" id="res1Search" list="res1SearchList" placeholder="Search chest number" autocomplete="off">
               <datalist id="res1SearchList"></datalist>
-
             </div>
-
             <div class="form-group">
-
-              <label for="res1Name">
-                Name
-              </label>
-
-              <input
-                type="text"
-                id="res1Name"
-                readonly
-                placeholder="Candidate name"
-              >
-
+              <label for="res1Name">Name</label>
+              <input type="text" id="res1Name" readonly placeholder="Candidate name">
             </div>
-
             <div class="form-group">
-
-              <label for="res1Team">
-                Team
-              </label>
-
+              <label for="res1Team">Team</label>
               <select id="res1Team">
-
-                <option value="">
-                  Select Team
-                </option>
-
+                <option value="">Select Team</option>
               </select>
-
             </div>
-
             <div class="form-group">
-
-              <label for="res1Grade">
-                Grade
-              </label>
-
+              <label for="res1Grade">Grade</label>
               <select id="res1Grade">
-
-                <option value="">
-                  -
-                </option>
-
-                <option value="A">
-                  A
-                </option>
-
-                <option value="B">
-                  B
-                </option>
-
-                <option value="C">
-                  C
-                </option>
-
+                <option value="">-</option>
+                <option value="A">A</option>
+                <option value="B">B</option>
+                <option value="C">C</option>
               </select>
-
             </div>
-
           </div>
-
-          <input
-            type="hidden"
-            id="res1Chest"
-          >
-
+          <input type="hidden" id="res1Chest">
         </div>
-
 
         <!-- SECOND -->
-
         <div class="result-row second">
-
           <div class="place-label">
-
             <span>2</span>
-
-            <strong>
-              2nd Place
-            </strong>
-
+            <strong>2nd Place</strong>
           </div>
-
           <div class="result-fields">
-
             <div class="form-group">
-
-              <label for="res2Search">
-                Candidate
-              </label>
-
-              <input
-                type="text"
-                id="res2Search"
-                list="res2SearchList"
-                placeholder="Search chest number"
-                autocomplete="off"
-              >
-
+              <label for="res2Search">Candidate</label>
+              <input type="text" id="res2Search" list="res2SearchList" placeholder="Search chest number" autocomplete="off">
               <datalist id="res2SearchList"></datalist>
-
             </div>
-
             <div class="form-group">
-
-              <label for="res2Name">
-                Name
-              </label>
-
-              <input
-                type="text"
-                id="res2Name"
-                readonly
-                placeholder="Candidate name"
-              >
-
+              <label for="res2Name">Name</label>
+              <input type="text" id="res2Name" readonly placeholder="Candidate name">
             </div>
-
             <div class="form-group">
-
-              <label for="res2Team">
-                Team
-              </label>
-
+              <label for="res2Team">Team</label>
               <select id="res2Team">
-
-                <option value="">
-                  Select Team
-                </option>
-
+                <option value="">Select Team</option>
               </select>
-
             </div>
-
             <div class="form-group">
-
-              <label for="res2Grade">
-                Grade
-              </label>
-
+              <label for="res2Grade">Grade</label>
               <select id="res2Grade">
-
-                <option value="">
-                  -
-                </option>
-
-                <option value="A">
-                  A
-                </option>
-
-                <option value="B">
-                  B
-                </option>
-
-                <option value="C">
-                  C
-                </option>
-
+                <option value="">-</option>
+                <option value="A">A</option>
+                <option value="B">B</option>
+                <option value="C">C</option>
               </select>
-
             </div>
-
           </div>
-
-          <input
-            type="hidden"
-            id="res2Chest"
-          >
-
+          <input type="hidden" id="res2Chest">
         </div>
-
 
         <!-- THIRD -->
-
         <div class="result-row third">
-
           <div class="place-label">
-
             <span>3</span>
-
-            <strong>
-              3rd Place
-            </strong>
-
+            <strong>3rd Place</strong>
           </div>
-
           <div class="result-fields">
-
             <div class="form-group">
-
-              <label for="res3Search">
-                Candidate
-              </label>
-
-              <input
-                type="text"
-                id="res3Search"
-                list="res3SearchList"
-                placeholder="Search chest number"
-                autocomplete="off"
-              >
-
+              <label for="res3Search">Candidate</label>
+              <input type="text" id="res3Search" list="res3SearchList" placeholder="Search chest number" autocomplete="off">
               <datalist id="res3SearchList"></datalist>
-
             </div>
-
             <div class="form-group">
-
-              <label for="res3Name">
-                Name
-              </label>
-
-              <input
-                type="text"
-                id="res3Name"
-                readonly
-                placeholder="Candidate name"
-              >
-
+              <label for="res3Name">Name</label>
+              <input type="text" id="res3Name" readonly placeholder="Candidate name">
             </div>
-
             <div class="form-group">
-
-              <label for="res3Team">
-                Team
-              </label>
-
+              <label for="res3Team">Team</label>
               <select id="res3Team">
-
-                <option value="">
-                  Select Team
-                </option>
-
+                <option value="">Select Team</option>
               </select>
-
             </div>
-
             <div class="form-group">
-
-              <label for="res3Grade">
-                Grade
-              </label>
-
+              <label for="res3Grade">Grade</label>
               <select id="res3Grade">
-
-                <option value="">
-                  -
-                </option>
-
-                <option value="A">
-                  A
-                </option>
-
-                <option value="B">
-                  B
-                </option>
-
-                <option value="C">
-                  C
-                </option>
-
+                <option value="">-</option>
+                <option value="A">A</option>
+                <option value="B">B</option>
+                <option value="C">C</option>
               </select>
-
             </div>
-
           </div>
-
-          <input
-            type="hidden"
-            id="res3Chest"
-          >
-
+          <input type="hidden" id="res3Chest">
         </div>
 
-
-        <button
-          type="submit"
-          class="primary-button publish-button"
-        >
-          <span class="material-symbols-rounded">
-            publish
-          </span>
-
+        <button type="submit" class="primary-button publish-button">
+          <span class="material-symbols-rounded">publish</span>
           Publish Result
         </button>
-
       </form>
 
-
-      <div class="list-header">
-        Published Results
-      </div>
-
-      <div
-        class="admin-list"
-        id="adminResultsList"
-      ></div>
-
+      <div class="list-header">Published Results</div>
+      <div class="admin-list" id="adminResultsList"></div>
     </section>
 
-
-    <!-- ===================================================
-         BACKUP (Updated with Excel / JSON export - Point 14)
-    ==================================================== -->
-
+    <!-- BACKUP -->
     <section class="admin-card">
-
       <div class="section-heading">
-
         <div>
-
-          <div class="section-number">
-            07
-          </div>
-
-          <h2>
-            Backup & Restore
-          </h2>
-
+          <div class="section-number">07</div>
+          <h2>Backup & Restore</h2>
         </div>
-
       </div>
-
-      <p class="section-description">
-        Export all festival data as an Excel/JSON backup or restore
-        data from an existing backup.
-      </p>
+      <p class="section-description">Export all festival data as an Excel/JSON backup or restore data from an existing backup.</p>
 
       <div class="backup-actions">
-
-        <button
-          type="button"
-          class="secondary-button"
-          id="exportBackupButton"
-        >
-          <span class="material-symbols-rounded">
-            download
-          </span>
-
+        <button type="button" class="secondary-button" id="exportBackupButton">
+          <span class="material-symbols-rounded">download</span>
           Export Backup (Excel/JSON)
         </button>
 
-        <label
-          for="importFile"
-          class="secondary-button file-button"
-        >
-          <span class="material-symbols-rounded">
-            upload
-          </span>
-
+        <label for="importFile" class="secondary-button file-button">
+          <span class="material-symbols-rounded">upload</span>
           Import Backup
-
         </label>
-
-        <input
-          type="file"
-          id="importFile"
-          accept=".json,application/json"
-          hidden
-        >
-
+        <input type="file" id="importFile" accept=".json,application/json" hidden>
       </div>
-
     </section>
 
-
-    <!-- ===================================================
-         DANGER
-    ==================================================== -->
-
+    <!-- DANGER -->
     <section class="admin-card danger-card">
-
       <div class="section-heading">
-
         <div>
-
-          <div class="section-number">
-            08
-          </div>
-
-          <h2>
-            Danger Zone
-          </h2>
-
+          <div class="section-number">08</div>
+          <h2>Danger Zone</h2>
         </div>
-
       </div>
+      <p class="section-description">Reset all festival data. A backup can be exported before the reset.</p>
 
-      <p class="section-description">
-        Reset all festival data. A backup can be exported
-        before the reset.
-      </p>
-
-      <button
-        type="button"
-        class="danger-button"
-        id="resetButton"
-      >
-        <span class="material-symbols-rounded">
-          delete_forever
-        </span>
-
+      <button type="button" class="danger-button" id="resetButton">
+        <span class="material-symbols-rounded">delete_forever</span>
         Reset All Festival Data
       </button>
-
     </section>
 
   </main>
 
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-  <!-- =====================================================
-        TOAST
-  ====================================================== -->
-
-  <div
-    class="toast"
-    id="toast"
-    role="status"
-    aria-live="polite"
-  ></div>
-
-
-  <!-- Firebase Initialization Script -->
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyAXJ79MCPymsCTTM5VxiSgEShju_tAqyZ8",
@@ -1434,6 +510,5 @@
   </script>
 
   <script src="admin.js"></script>
-
 </body>
 </html>
