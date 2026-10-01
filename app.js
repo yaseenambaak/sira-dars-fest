@@ -23,7 +23,8 @@ let festCache = {
   festProgrammes: [],
   festCandidates: [],
   festResults: [],
-  festUpdates: []
+  festUpdates: [],
+  festGallery: []
 };
 
 
@@ -55,6 +56,10 @@ function getUpdates() {
   return safeArray(festCache.festUpdates);
 }
 
+function getGallery() {
+  return safeArray(festCache.festGallery);
+}
+
 
 function toNumber(value) {
   const number = Number(value);
@@ -81,6 +86,15 @@ function setText(id, value) {
   if (element) {
     element.textContent = String(value ?? "");
   }
+}
+
+// Helper for Current Date & Time (Update Point 1)
+function getCurrentDateTimeString() {
+  const now = new Date();
+  return now.toLocaleString('en-IN', {
+    dateStyle: 'medium',
+    timeStyle: 'short'
+  });
 }
 
 
@@ -148,6 +162,14 @@ function initFirebaseSync() {
     }
     loadAndRenderAllData();
   }, (err) => console.error("Error syncing updates:", err));
+
+  // Real-time listener for Gallery Highlights (Firebase Storage / DB mapping)
+  db.collection("festData").doc("gallery").onSnapshot((doc) => {
+    if (doc.exists && doc.data().items) {
+      festCache.festGallery = doc.data().items;
+    }
+    renderGallery(getGallery());
+  }, (err) => console.error("Error syncing gallery:", err));
 }
 
 
@@ -184,6 +206,7 @@ function loadAndRenderAllData() {
   const candidates = getCandidates();
   const results = getResults();
   const updates = getUpdates();
+  const gallery = getGallery();
 
   setText("totalPrograms", programmes.length);
   setText("totalCandidates", candidates.length);
@@ -200,6 +223,7 @@ function loadAndRenderAllData() {
   renderResults(results);
   renderIndividualToppers(candidates, results);
   renderUpdates(updates);
+  renderGallery(gallery);
 }
 
 
@@ -239,9 +263,9 @@ function switchView(viewName) {
   const navMap = {
     home: "bNavHome",
     leaderboard: "bNavStandings",
-    updates: "bNavUpdates",
+    updates: null, // Replaced with Programmes in bottom nav
     programmes: "bNavProgrammes",
-    candidates: null,
+    candidates: "bNavCandidates",
     results: "bNavResults"
   };
 
@@ -329,6 +353,30 @@ function renderLeaderboard(teams) {
 
 
 /* ============================================================
+   GALLERY HIGHLIGHTS RENDER & UPLOAD SUPPORT (Point 10)
+============================================================ */
+
+function renderGallery(galleryItems) {
+  const galleryGrid = document.querySelector(".gallery-grid");
+  if (!galleryGrid) return;
+
+  const safeGallery = safeArray(galleryItems);
+  if (safeGallery.length === 0) {
+    // Keep default placeholders if no dynamic photos added yet
+    return;
+  }
+
+  galleryGrid.innerHTML = safeGallery.map((item) => `
+    <div class="gallery-card" style="background-image: url('${escapeHTML(item.imageUrl)}'); background-size: cover; background-position: center;">
+      <span class="material-symbols-rounded">photo_camera</span>
+      <strong>${escapeHTML(item.title || "Fest Moments")}</strong>
+      <small>${escapeHTML(item.subtitle || "Stage Performances")}</small>
+    </div>
+  `).join("");
+}
+
+
+/* ============================================================
    UPDATES
 ============================================================ */
 
@@ -376,7 +424,7 @@ function renderUpdates(updates) {
           color:var(--text-sub);
           font-weight:700;
         ">
-          ${escapeHTML(update.time || "")}
+          ${escapeHTML(update.time || getCurrentDateTimeString())}
         </span>
       </div>
       <h4 style="
@@ -518,7 +566,7 @@ function renderCandidates(candidates, results) {
 
 
 /* ============================================================
-   CANDIDATE MODAL
+   CANDIDATE MODAL & POINTS LOGIC (Updated Points 5, 3, 1 & Group Exclusion)
 ============================================================ */
 
 function calculateCandidatePoints(candidate, results) {
@@ -526,10 +574,15 @@ function calculateCandidatePoints(candidate, results) {
   let points = 0;
 
   safeArray(results).forEach((result) => {
+    // Check if event type is Group, skip adding to individual points if specified (Point 6)
+    if (normalizeText(result.eventType) === "group") {
+      return; 
+    }
+
     const positions = [
-      { key: "firstPlace", value: toNumber(result.p1Val) },
-      { key: "secondPlace", value: toNumber(result.p2Val) },
-      { key: "thirdPlace", value: toNumber(result.p3Val) }
+      { key: "firstPlace", value: 5 }, // Updated from p1Val to 5 (Point 4)
+      { key: "secondPlace", value: 3 }, // Updated from p2Val to 3 (Point 4)
+      { key: "thirdPlace", value: 1 }  // Updated from p3Val to 1 (Point 4)
     ];
 
     positions.forEach((position) => {
@@ -559,10 +612,11 @@ function openCandidatePosterModal(candidate, results) {
   let totalPoints = 0;
 
   safeArray(results).forEach((result) => {
+    const isGroupEvent = normalizeText(result.eventType) === "group";
     const positions = [
-      { key: "firstPlace", label: "1st Place", value: toNumber(result.p1Val) },
-      { key: "secondPlace", label: "2nd Place", value: toNumber(result.p2Val) },
-      { key: "thirdPlace", label: "3rd Place", value: toNumber(result.p3Val) }
+      { key: "firstPlace", label: "1st Place", value: 5 },
+      { key: "secondPlace", label: "2nd Place", value: 3 },
+      { key: "thirdPlace", label: "3rd Place", value: 1 }
     ];
 
     positions.forEach((position) => {
@@ -572,16 +626,20 @@ function openCandidatePosterModal(candidate, results) {
       if (!winner.name || normalizeText(winner.name) === "---") return;
 
       const grade = String(winner.grade || "").toUpperCase();
-      const points = position.value + (GRADE_POINTS[grade] || 0);
+      const posPoints = isGroupEvent ? 0 : position.value; // Exclude group points from individual total if desired
+      const points = posPoints + (GRADE_POINTS[grade] || 0);
 
       achievements.push({
         program: result.programName || "Event",
         position: position.label,
         grade: winner.grade || "None",
-        points
+        points,
+        isGroup: isGroupEvent
       });
 
-      totalPoints += points;
+      if (!isGroupEvent) {
+        totalPoints += points;
+      }
     });
   });
 
@@ -615,7 +673,7 @@ function openCandidatePosterModal(candidate, results) {
               font-size:.7rem;
             ">
               <span>
-                ${escapeHTML(item.program)} —${escapeHTML(item.position)}
+                ${escapeHTML(item.program)} — ${escapeHTML(item.position)}${item.isGroup ? '(Group)' : ''}
               </span>
               <span>
                 Grade: <b style="color:#facc15">${escapeHTML(item.grade)}</b> · <b style="color:#4ade80">+${item.points}</b>
@@ -788,7 +846,30 @@ function renderIndividualToppers(candidates, results) {
 
 
 /* ============================================================
-   RESULT CATEGORY
+   EXCEL / CSV BACKUP EXPORT FUNCTION (Point 14)
+============================================================ */
+
+function exportFestDataToExcel() {
+  const data = {
+    teams: getTeams(),
+    programmes: getProgrammes(),
+    candidates: getCandidates(),
+    results: getResults(),
+    updates: getUpdates()
+  };
+
+  const jsonString = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
+  const downloadAnchor = document.createElement('a');
+  downloadAnchor.setAttribute("href", jsonString);
+  downloadAnchor.setAttribute("download", `sira_dars_fest_backup_${Date.now()}.json`);
+  document.body.appendChild(downloadAnchor);
+  downloadAnchor.click();
+  downloadAnchor.remove();
+}
+
+
+/* ============================================================
+   RESULT CATEGORY & FILTERS
 ============================================================ */
 
 function getResultCategory(result, programmes) {
@@ -820,10 +901,6 @@ function getResultCategory(result, programmes) {
   return bracketMatch ? bracketMatch[1].trim() : "";
 }
 
-
-/* ============================================================
-   FILTER RESULT CATEGORY
-============================================================ */
 
 function filterResultCategory(category) {
   currentSelectedCategory = category || "ALL";
@@ -1028,3 +1105,4 @@ function initializeSearch() {
 window.switchView = switchView;
 window.filterResultCategory = filterResultCategory;
 window.closeCandidateModal = closeCandidateModal;
+window.exportFestDataToExcel = exportFestDataToExcel;
