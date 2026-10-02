@@ -9,16 +9,12 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
-  <link
-    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,400..700,0..1,0..200&family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap"
-    rel="stylesheet"
-  >
-
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,400..700,0..1,0..200&family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="admin.css">
 
-  <!-- Firebase App & Firestore SDK (CDN) -->
+  <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
 </head>
@@ -55,7 +51,6 @@
   </header>
 
   <main class="page-container">
-
     <section class="admin-hero">
       <div class="hero-badge">
         <span class="material-symbols-rounded">dashboard</span>
@@ -490,7 +485,6 @@
         Reset All Festival Data
       </button>
     </section>
-
   </main>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -507,6 +501,7 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
     const storage = firebase.storage();
+    const auth = firebase.auth();
   </script>
 
   <script src="admin.js"></script>
