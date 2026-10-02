@@ -1,12 +1,8 @@
 "use strict";
 
 /* ============================================================
-   SIRA DARS FEST — ADMIN CONTROL SYSTEM (FIREBASE VERSION)
+   SIRA DARS FEST — ADMIN CONTROL SYSTEM (FIREBASE AUTH SECURED)
 ============================================================ */
-
-const STORAGE = Object.freeze({
-  AUTH: "adminAuthenticated"
-});
 
 const DEFAULT_TEAMS = [
   { name: "AL BADR", points: 0 },
@@ -29,15 +25,24 @@ let adminCache = {
   festGallery: []
 };
 
-
 /* =========================================================
-   AUTHENTICATION
+   AUTHENTICATION CHECK (FIREBASE AUTH)
 ========================================================= */
 
-if (sessionStorage.getItem(STORAGE.AUTH) !== "true") {
-  window.location.replace("admin-login.html");
-}
+document.addEventListener("DOMContentLoaded", () => {
+  if (typeof auth === "undefined" || typeof db === "undefined") {
+    console.error("Firebase is not initialized properly!");
+    return;
+  }
 
+  auth.onAuthStateChanged((user) => {
+    if (!user) {
+      window.location.replace("admin-login.html");
+    } else {
+      initializeAdminPanel();
+    }
+  });
+});
 
 /* =========================================================
    DOM HELPERS
@@ -47,17 +52,11 @@ function $(id) {
   return document.getElementById(id);
 }
 
-
 /* =========================================================
    FIREBASE DATA SYNC & FETCH HELPERS
 ========================================================= */
 
 function initAdminFirebaseSync(callback) {
-  if (typeof db === "undefined") {
-    console.error("Firebase Firestore (db) is not initialized!");
-    return;
-  }
-
   let loadedCount = 0;
   const totalCollections = 6;
 
@@ -75,41 +74,39 @@ function initAdminFirebaseSync(callback) {
       saveToFirestore("teams", DEFAULT_TEAMS);
     }
     checkReady();
-  });
+  }, (err) => { console.warn("Teams sync error:", err); checkReady(); });
 
   db.collection("festData").doc("programmes").onSnapshot((doc) => {
     adminCache.festProgrammes = (doc.exists && doc.data().items) ? doc.data().items : [];
     checkReady();
-  });
+  }, (err) => { console.warn("Programmes sync error:", err); checkReady(); });
 
   db.collection("festData").doc("candidates").onSnapshot((doc) => {
     adminCache.festCandidates = (doc.exists && doc.data().items) ? doc.data().items : [];
     checkReady();
-  });
+  }, (err) => { console.warn("Candidates sync error:", err); checkReady(); });
 
   db.collection("festData").doc("results").onSnapshot((doc) => {
     adminCache.festResults = (doc.exists && doc.data().items) ? doc.data().items : [];
     checkReady();
-  });
+  }, (err) => { console.warn("Results sync error:", err); checkReady(); });
 
   db.collection("festData").doc("updates").onSnapshot((doc) => {
     adminCache.festUpdates = (doc.exists && doc.data().items) ? doc.data().items : [];
     checkReady();
-  });
+  }, (err) => { console.warn("Updates sync error:", err); checkReady(); });
 
   db.collection("festData").doc("gallery").onSnapshot((doc) => {
     adminCache.festGallery = (doc.exists && doc.data().items) ? doc.data().items : [];
     checkReady();
-  });
+  }, (err) => { console.warn("Gallery sync error:", err); checkReady(); });
 }
-
 
 function saveToFirestore(docName, itemsArray) {
   if (typeof db === "undefined") return;
   db.collection("festData").doc(docName).set({ items: itemsArray })
     .catch((error) => console.error(`Error saving ${docName} to Firebase:`, error));
 }
-
 
 function getJSON(key, fallback) {
   switch(key) {
@@ -151,7 +148,6 @@ function setJSON(key, value) {
       break;
   }
 }
-
 
 /* =========================================================
    SAFE HTML & TOAST
@@ -202,7 +198,6 @@ function ensureDefaultTeams() {
   setJSON("festTeams", teams);
   return teams;
 }
-
 
 /* =========================================================
    TEAMS MANAGEMENT
@@ -300,7 +295,6 @@ function saveAllTeams() {
   showToast("Team names updated successfully.");
 }
 
-
 /* =========================================================
    UPDATES
 ========================================================= */
@@ -348,7 +342,6 @@ function deleteUpdate(index) {
   loadAdminUpdatesList();
   showToast("Update deleted.");
 }
-
 
 /* =========================================================
    CANDIDATES
@@ -418,7 +411,6 @@ function editCandidate(index) {
   refreshCandidateDatalists();
   showToast("Candidate updated.");
 }
-
 
 /* =========================================================
    PROGRAMMES
@@ -498,7 +490,6 @@ function editProgramme(index) {
   loadAdminProgrammesList();
   showToast("Programme updated.");
 }
-
 
 /* =========================================================
    GALLERY UPLOAD
@@ -585,7 +576,6 @@ function deleteGalleryPhoto(index) {
   loadAdminGalleryList();
   showToast("Gallery photo deleted.");
 }
-
 
 /* =========================================================
    PROGRAMME KEYS & RESULTS
@@ -860,7 +850,6 @@ function deleteResult(index) {
   showToast("Result deleted and team points recalculated.");
 }
 
-
 /* =========================================================
    BACKUP & RESET
 ========================================================= */
@@ -984,7 +973,6 @@ function emptyMessage(message) {
   element.textContent = message;
   return element;
 }
-
 
 /* =========================================================
    EVENT SETUP & INITIALIZATION
@@ -1165,8 +1153,9 @@ function setupListActions() {
 function setupLogout() {
   $("logoutButton")?.addEventListener("click", () => {
     if (!confirm("Logout from the admin panel?")) return;
-    sessionStorage.removeItem(STORAGE.AUTH);
-    window.location.replace("admin-login.html");
+    auth.signOut().then(() => {
+      window.location.replace("admin-login.html");
+    });
   });
 }
 
@@ -1190,11 +1179,6 @@ function setupProgrammeChange() {
 }
 
 function initializeAdminPanel() {
-  if (sessionStorage.getItem(STORAGE.AUTH) !== "true") {
-    window.location.replace("admin-login.html");
-    return;
-  }
-
   if ($("updateTime")) {
     $("updateTime").value = getCurrentDateTimeString();
   }
@@ -1220,10 +1204,4 @@ function initializeAdminPanel() {
     setupProgrammeChange();
     refreshCandidateDatalists();
   });
-}
-
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", initializeAdminPanel);
-} else {
-  initializeAdminPanel();
 }
