@@ -102,7 +102,7 @@ function getCurrentDateTimeString() {
 
 
 /* ============================================================
-   INITIALIZATION & FIREBASE REAL-TIME SYNC (UPDATED)
+   INITIALIZATION & FIREBASE REAL-TIME SYNC
 ============================================================ */
 
 window.addEventListener(
@@ -124,24 +124,47 @@ function initFirebaseSync() {
     return;
   }
 
-  const collections = ["teams", "programmes", "candidates", "results", "updates", "gallery"];
+  db.collection("festData").doc("teams").onSnapshot((doc) => {
+    if (doc.exists && doc.data().items) {
+      festCache.festTeams = doc.data().items;
+    }
+    loadAndRenderAllData();
+  }, (err) => console.error("Error syncing teams:", err));
 
-  collections.forEach(col => {
-    db.collection("festData").doc(col).onSnapshot((doc) => {
-      if (doc.exists) {
-        const data = doc.data();
-        const items = data.items || data;
-        
-        if (col === "teams") festCache.festTeams = Array.isArray(items) ? items : data.items;
-        if (col === "programmes") festCache.festProgrammes = Array.isArray(items) ? items : [];
-        if (col === "candidates") festCache.festCandidates = Array.isArray(items) ? items : [];
-        if (col === "results") festCache.festResults = Array.isArray(items) ? items : [];
-        if (col === "updates") festCache.festUpdates = Array.isArray(items) ? items : [];
-        if (col === "gallery") festCache.festGallery = Array.isArray(items) ? items : [];
-      }
-      loadAndRenderAllData();
-    }, (err) => console.error(`Error syncing ${col}:`, err));
-  });
+  db.collection("festData").doc("programmes").onSnapshot((doc) => {
+    if (doc.exists && doc.data().items) {
+      festCache.festProgrammes = doc.data().items;
+    }
+    loadAndRenderAllData();
+  }, (err) => console.error("Error syncing programmes:", err));
+
+  db.collection("festData").doc("candidates").onSnapshot((doc) => {
+    if (doc.exists && doc.data().items) {
+      festCache.festCandidates = doc.data().items;
+    }
+    loadAndRenderAllData();
+  }, (err) => console.error("Error syncing candidates:", err));
+
+  db.collection("festData").doc("results").onSnapshot((doc) => {
+    if (doc.exists && doc.data().items) {
+      festCache.festResults = doc.data().items;
+    }
+    loadAndRenderAllData();
+  }, (err) => console.error("Error syncing results:", err));
+
+  db.collection("festData").doc("updates").onSnapshot((doc) => {
+    if (doc.exists && doc.data().items) {
+      festCache.festUpdates = doc.data().items;
+    }
+    loadAndRenderAllData();
+  }, (err) => console.error("Error syncing updates:", err));
+
+  db.collection("festData").doc("gallery").onSnapshot((doc) => {
+    if (doc.exists && doc.data().items) {
+      festCache.festGallery = doc.data().items;
+    }
+    renderGallery(getGallery());
+  }, (err) => console.error("Error syncing gallery:", err));
 }
 
 
