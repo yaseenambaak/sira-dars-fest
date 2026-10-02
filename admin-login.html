@@ -3,208 +3,132 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+  <meta name="theme-color" content="#0f172a">
   <title>Admin Login • Sira Dars Fest</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
-  <link
-    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,400..700,0..1,0..200&family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap"
-    rel="stylesheet"
-  >
-
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,400..700,0..1,0..200&family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="admin.css">
-</head>
 
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+</head>
 <body>
 
   <main class="admin-login-page">
-
     <div class="login-wrapper">
-
       <section class="login-card">
-
         <div class="login-header">
-
           <div class="login-icon">
-            <span class="material-symbols-rounded">
-              admin_panel_settings
-            </span>
+            <span class="material-symbols-rounded">admin_panel_settings</span>
           </div>
-
           <h1>Sira Dars Fest</h1>
-
-          <p>
-            Administration Control Panel
-          </p>
-
+          <p>Administration Control Panel</p>
         </div>
 
         <form id="loginForm">
-
           <div class="form-group login-form-group">
-
-            <label for="adminUsername">
-              Username
-            </label>
-
-            <input
-              type="text"
-              id="adminUsername"
-              name="username"
-              placeholder="Enter username"
-              autocomplete="username"
-              required
-            >
-
+            <label for="adminEmail">Email Address</label>
+            <input type="email" id="adminEmail" name="email" placeholder="admin@siradars.com" autocomplete="email" required>
           </div>
 
           <div class="form-group login-form-group">
-
-            <label for="adminPassword">
-              Password
-            </label>
-
+            <label for="adminPassword">Password</label>
             <div class="password-wrapper">
-
-              <input
-                type="password"
-                id="adminPassword"
-                name="password"
-                placeholder="Enter password"
-                autocomplete="current-password"
-                required
-              >
-
-              <button
-                type="button"
-                class="password-toggle"
-                id="passwordToggle"
-                aria-label="Show password"
-              >
-                <span class="material-symbols-rounded">
-                  visibility
-                </span>
+              <input type="password" id="adminPassword" name="password" placeholder="Enter password" autocomplete="current-password" required>
+              <button type="button" class="password-toggle" id="passwordToggle" aria-label="Show password">
+                <span class="material-symbols-rounded">visibility</span>
               </button>
-
             </div>
-
           </div>
 
-          <div
-            class="form-error"
-            id="loginError"
-            aria-live="polite"
-          ></div>
+          <div class="form-error" id="loginError" aria-live="polite"></div>
 
-          <button
-            type="submit"
-            class="primary-button login-button"
-          >
-            <span class="material-symbols-rounded">
-              login
-            </span>
-
-            Login to Admin
+          <button type="submit" class="primary-button login-button" id="loginBtn">
+            <span class="material-symbols-rounded">login</span>
+            <span>Login to Admin</span>
           </button>
-
         </form>
 
-        <a
-          href="index.html"
-          class="back-link"
-        >
-          <span class="material-symbols-rounded">
-            arrow_back
-          </span>
-
+        <a href="index.html" class="back-link">
+          <span class="material-symbols-rounded">arrow_back</span>
           Back to Festival Website
         </a>
-
       </section>
-
     </div>
-
   </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <script>
     "use strict";
 
-    const AUTH_KEY = "adminAuthenticated";
-
-    const DEMO_USERNAME = "admin";
-    const DEMO_PASSWORD = "123456";
+    const firebaseConfig = {
+      apiKey: "AIzaSyAXJ79MCPymsCTTM5VxiSgEShju_tAqyZ8",
+      authDomain: "sira-dars-fest.firebaseapp.com",
+      projectId: "sira-dars-fest",
+      storageBucket: "sira-dars-fest.firebasestorage.app",
+      messagingSenderId: "680115463640",
+      appId: "1:680115463640:web:4a55721c045a06f9cbfead"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
 
     const loginForm = document.getElementById("loginForm");
-    const usernameInput = document.getElementById("adminUsername");
+    const emailInput = document.getElementById("adminEmail");
     const passwordInput = document.getElementById("adminPassword");
     const passwordToggle = document.getElementById("passwordToggle");
     const loginError = document.getElementById("loginError");
+    const loginBtn = document.getElementById("loginBtn");
 
-    /*
-     * If already logged in, go directly to admin panel.
-     */
-    if (sessionStorage.getItem(AUTH_KEY) === "true") {
-      window.location.replace("admin.html");
+    function showToast(message, type = "success") {
+      const toast = document.getElementById("toast");
+      if (!toast) return;
+      toast.textContent = message;
+      toast.className = `toast show ${type}`;
+      setTimeout(() => { toast.className = "toast"; }, 3000);
     }
 
-    /*
-     * Password visibility
-     */
-    passwordToggle.addEventListener("click", () => {
-
-      const isPassword =
-        passwordInput.type === "password";
-
-      passwordInput.type =
-        isPassword ? "text" : "password";
-
-      const icon =
-        passwordToggle.querySelector("span");
-
-      icon.textContent =
-        isPassword ? "visibility_off" : "visibility";
-
+    // Redirect if already logged in via Firebase Auth
+    auth.onAuthStateChanged((user) => {
+      if (user) {
+        window.location.replace("admin.html");
+      }
     });
 
-    /*
-     * Login
-     */
-    loginForm.addEventListener("submit", (event) => {
+    passwordToggle.addEventListener("click", () => {
+      const isPassword = passwordInput.type === "password";
+      passwordInput.type = isPassword ? "text" : "password";
+      passwordToggle.querySelector("span").textContent = isPassword ? "visibility_off" : "visibility";
+    });
 
-      event.preventDefault();
-
-      const username =
-        usernameInput.value.trim();
-
-      const password =
-        passwordInput.value;
+    loginForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = emailInput.value.trim();
+      const password = passwordInput.value;
 
       loginError.textContent = "";
+      loginBtn.disabled = true;
+      loginBtn.innerHTML = "Authenticating...";
 
-      if (
-        username === DEMO_USERNAME &&
-        password === DEMO_PASSWORD
-      ) {
-
-        sessionStorage.setItem(
-          AUTH_KEY,
-          "true"
-        );
-
-        window.location.replace("admin.html");
-
-        return;
+      try {
+        await auth.signInWithEmailAndPassword(email, password);
+        showToast("Login successful! Redirecting...");
+        setTimeout(() => {
+          window.location.replace("admin.html");
+        }, 800);
+      } catch (error) {
+        console.error("Login error:", error);
+        loginError.textContent = "Invalid email or password.";
+        showToast("Authentication failed.", "error");
+        loginBtn.disabled = false;
+        loginBtn.innerHTML = '<span class="material-symbols-rounded">login</span><span>Login to Admin</span>';
+        passwordInput.focus();
       }
-
-      loginError.textContent =
-        "Invalid username or password.";
-
-      passwordInput.focus();
-
     });
   </script>
-
 </body>
 </html>
