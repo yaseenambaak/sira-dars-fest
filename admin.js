@@ -1,1207 +1,6215 @@
 "use strict";
 
-/* ============================================================
-   SIRA DARS FEST — ADMIN CONTROL SYSTEM (FIREBASE AUTH SECURED)
-============================================================ */
+# /*
 
-const DEFAULT_TEAMS = [
-  { name: "AL BADR", points: 0 },
-  { name: "AL FAROOQ", points: 0 },
-  { name: "AL ANSAR", points: 0 }
-];
+SIRA DARS FEST
+ADMIN PANEL
+admin.js
 
-const GRADE_POINTS = Object.freeze({
-  A: 5,
-  B: 3,
-  C: 1
-});
+Main rules:
 
-let adminCache = {
-  festTeams: [...DEFAULT_TEAMS],
-  festCandidates: [],
-  festProgrammes: [],
-  festResults: [],
-  festUpdates: [],
-  festGallery: []
+1. Exactly 3 teams
+
+2. Candidate:
+
+   * Chest Number
+   * Name
+   * Team
+   * Category
+   * Full edit supported
+
+3. Programme:
+
+   * Stable ID
+   * Title
+   * Category
+   * Venue
+   * Time
+   * Status
+   * Individual / Group
+   * 1st / 2nd / 3rd programme-specific points
+
+4. Grade:
+   A = 5
+   B = 3
+   C = 1
+
+5. Individual result:
+   Place points + grade points
+   -> Candidate
+   -> Team
+
+6. Group result:
+   Place points + grade points
+   -> Team ONLY
+
+7. Group result NEVER contributes
+   to individual candidate points.
+
+8. Chest number automatically resolves
+   candidate name + team.
+
+9. Team cannot be manually selected
+   while entering a result.
+
+10. JSON backup + restore
+
+11. Real XLSX export
+
+=========================================================
+*/
+
+/* ========================================================
+FIREBASE
+======================================================== */
+
+const firebaseConfig = {
+
+```
+apiKey: "YOUR_FIREBASE_API_KEY",
+
+authDomain: "YOUR_FIREBASE_AUTH_DOMAIN",
+
+projectId: "YOUR_FIREBASE_PROJECT_ID",
+
+storageBucket: "YOUR_FIREBASE_STORAGE_BUCKET",
+
+messagingSenderId:
+    "YOUR_FIREBASE_MESSAGING_SENDER_ID",
+
+appId:
+    "YOUR_FIREBASE_APP_ID"
+```
+
 };
 
-/* =========================================================
-   AUTHENTICATION CHECK (FIREBASE AUTH)
-========================================================= */
+if (!firebase.apps.length) {
 
-document.addEventListener("DOMContentLoaded", () => {
-  if (typeof auth === "undefined" || typeof db === "undefined") {
-    console.error("Firebase is not initialized properly!");
-    return;
-  }
+```
+firebase.initializeApp(
+    firebaseConfig
+);
+```
 
-  auth.onAuthStateChanged((user) => {
-    if (!user) {
-      window.location.replace("admin-login.html");
-    } else {
-      initializeAdminPanel();
-    }
-  });
-});
+}
 
-/* =========================================================
-   DOM HELPERS
-========================================================= */
+const auth =
+firebase.auth();
+
+const db =
+firebase.firestore();
+
+/* ========================================================
+CONSTANTS
+======================================================== */
+
+const ADMIN_COLLECTION =
+"admins";
+
+const TEAMS_COLLECTION =
+"festTeams";
+
+const CANDIDATES_COLLECTION =
+"festCandidates";
+
+const PROGRAMMES_COLLECTION =
+"festProgrammes";
+
+const RESULTS_COLLECTION =
+"festResults";
+
+const UPDATES_COLLECTION =
+"festUpdates";
+
+const DEFAULT_TEAMS = [
+
+```
+{
+    id: "team_1",
+    name: "AL BADR",
+    points: 0
+},
+
+{
+    id: "team_2",
+    name: "AL FAROOQ",
+    points: 0
+},
+
+{
+    id: "team_3",
+    name: "AL ANSAR",
+    points: 0
+}
+```
+
+];
+
+const GRADE_POINTS = {
+
+```
+A: 5,
+
+B: 3,
+
+C: 1
+```
+
+};
+
+const VALID_CATEGORIES = [
+
+```
+"Sub-Junior",
+"Junior",
+"Senior",
+"General",
+"Open"
+```
+
+];
+
+const VALID_STATUSES = [
+
+```
+"Upcoming",
+"Live",
+"Completed",
+"Cancelled"
+```
+
+];
+
+const VALID_EVENT_TYPES = [
+
+```
+"individual",
+"group"
+```
+
+];
+
+/* ========================================================
+CACHE
+======================================================== */
+
+const adminCache = {
+
+```
+teams: [],
+
+candidates: [],
+
+programmes: [],
+
+results: [],
+
+updates: []
+```
+
+};
+
+const listeners = [];
+
+let currentUser = null;
+
+let dataReady = {
+
+```
+teams: false,
+
+candidates: false,
+
+programmes: false,
+
+results: false,
+
+updates: false
+```
+
+};
+
+let selectedBackupFile = null;
+
+let toastTimer = null;
+
+/* ========================================================
+DOM HELPERS
+======================================================== */
 
 function $(id) {
-  return document.getElementById(id);
+
+```
+return document.getElementById(id);
+```
+
 }
 
-/* =========================================================
-   FIREBASE DATA SYNC & FETCH HELPERS
-========================================================= */
+function safeString(value) {
 
-function initAdminFirebaseSync(callback) {
-  let loadedCount = 0;
-  const totalCollections = 6;
+```
+if (
+    value === null ||
+    value === undefined
+) {
 
-  function checkReady() {
-    loadedCount++;
-    if (loadedCount >= totalCollections && typeof callback === "function") {
-      callback();
-    }
-  }
+    return "";
 
-  db.collection("festData").doc("teams").onSnapshot((doc) => {
-    if (doc.exists && doc.data().items) {
-      adminCache.festTeams = doc.data().items;
-    } else {
-      saveToFirestore("teams", DEFAULT_TEAMS);
-    }
-    checkReady();
-  }, (err) => { console.warn("Teams sync error:", err); checkReady(); });
-
-  db.collection("festData").doc("programmes").onSnapshot((doc) => {
-    adminCache.festProgrammes = (doc.exists && doc.data().items) ? doc.data().items : [];
-    checkReady();
-  }, (err) => { console.warn("Programmes sync error:", err); checkReady(); });
-
-  db.collection("festData").doc("candidates").onSnapshot((doc) => {
-    adminCache.festCandidates = (doc.exists && doc.data().items) ? doc.data().items : [];
-    checkReady();
-  }, (err) => { console.warn("Candidates sync error:", err); checkReady(); });
-
-  db.collection("festData").doc("results").onSnapshot((doc) => {
-    adminCache.festResults = (doc.exists && doc.data().items) ? doc.data().items : [];
-    checkReady();
-  }, (err) => { console.warn("Results sync error:", err); checkReady(); });
-
-  db.collection("festData").doc("updates").onSnapshot((doc) => {
-    adminCache.festUpdates = (doc.exists && doc.data().items) ? doc.data().items : [];
-    checkReady();
-  }, (err) => { console.warn("Updates sync error:", err); checkReady(); });
-
-  db.collection("festData").doc("gallery").onSnapshot((doc) => {
-    adminCache.festGallery = (doc.exists && doc.data().items) ? doc.data().items : [];
-    checkReady();
-  }, (err) => { console.warn("Gallery sync error:", err); checkReady(); });
 }
 
-function saveToFirestore(docName, itemsArray) {
-  if (typeof db === "undefined") return;
-  db.collection("festData").doc(docName).set({ items: itemsArray })
-    .catch((error) => console.error(`Error saving ${docName} to Firebase:`, error));
+return String(value).trim();
+```
+
 }
 
-function getJSON(key, fallback) {
-  switch(key) {
-    case "festTeams": return adminCache.festTeams;
-    case "festCandidates": return adminCache.festCandidates;
-    case "festProgrammes": return adminCache.festProgrammes;
-    case "festResults": return adminCache.festResults;
-    case "festUpdates": return adminCache.festUpdates;
-    case "festGallery": return adminCache.festGallery;
-    default: return fallback;
-  }
+function normalize(value) {
+
+```
+return safeString(value)
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+```
+
 }
 
-function setJSON(key, value) {
-  switch(key) {
-    case "festTeams":
-      adminCache.festTeams = value;
-      saveToFirestore("teams", value);
-      break;
-    case "festCandidates":
-      adminCache.festCandidates = value;
-      saveToFirestore("candidates", value);
-      break;
-    case "festProgrammes":
-      adminCache.festProgrammes = value;
-      saveToFirestore("programmes", value);
-      break;
-    case "festResults":
-      adminCache.festResults = value;
-      saveToFirestore("results", value);
-      break;
-    case "festUpdates":
-      adminCache.festUpdates = value;
-      saveToFirestore("updates", value);
-      break;
-    case "festGallery":
-      adminCache.festGallery = value;
-      saveToFirestore("gallery", value);
-      break;
-  }
+function numberValue(value) {
+
+```
+const number =
+    Number(value);
+
+return Number.isFinite(number)
+    ? number
+    : 0;
+```
+
 }
 
-/* =========================================================
-   SAFE HTML & TOAST
-========================================================= */
+function positiveNumber(value) {
+
+```
+const number =
+    Number(value);
+
+return Number.isFinite(number) &&
+       number >= 0
+    ? number
+    : null;
+```
+
+}
 
 function escapeHTML(value) {
-  return String(value ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
+
+```
+return safeString(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+```
+
 }
 
-function showToast(message, type = "success") {
-  const toast = $("toast");
-  if (!toast) return;
+function generateId(prefix) {
 
-  toast.textContent = message;
-  toast.className = `toast show ${type}`;
+```
+if (
+    typeof crypto !== "undefined" &&
+    crypto.randomUUID
+) {
 
-  clearTimeout(showToast.timer);
-  showToast.timer = setTimeout(() => {
-    toast.className = "toast";
-  }, 3000);
+    return `${prefix}_${crypto.randomUUID()}`;
+
 }
 
-function getCurrentDateTimeString() {
-  const now = new Date();
-  return now.toLocaleString('en-IN', {
-    dateStyle: 'medium',
-    timeStyle: 'short'
-  });
+
+return (
+    prefix +
+    "_" +
+    Date.now() +
+    "_" +
+    Math.random()
+        .toString(36)
+        .slice(2, 10)
+);
+```
+
 }
 
-function ensureDefaultTeams() {
-  let teams = getJSON("festTeams", null);
-  if (!Array.isArray(teams) || teams.length !== 3) {
-    teams = structuredClone(DEFAULT_TEAMS);
-    setJSON("festTeams", teams);
-  }
+/* ========================================================
+TOAST
+======================================================== */
 
-  teams = teams.map(team => ({
-    name: String(team.name || "").trim().toUpperCase(),
-    points: Number.isFinite(Number(team.points)) ? Number(team.points) : 0
-  }));
+function showToast(
+message,
+type = "success"
+) {
 
-  setJSON("festTeams", teams);
-  return teams;
-}
+```
+const toast =
+    $("adminToast");
 
-/* =========================================================
-   TEAMS MANAGEMENT
-========================================================= */
+const toastMessage =
+    $("toastMessage");
 
-function loadTeamDataToUI() {
-  const teams = ensureDefaultTeams();
+const toastIcon =
+    $("toastIcon");
 
-  if ($("teamName1")) $("teamName1").value = teams[0]?.name || "";
-  if ($("teamName2")) $("teamName2").value = teams[1]?.name || "";
-  if ($("teamName3")) $("teamName3").value = teams[2]?.name || "";
 
-  populateTeamSelect("candGroup");
-  populateTeamSelect("res1Team");
-  populateTeamSelect("res2Team");
-  populateTeamSelect("res3Team");
-}
-
-function populateTeamSelect(id, selectedValue = "") {
-  const select = $(id);
-  if (!select) return;
-
-  const teams = ensureDefaultTeams();
-  select.replaceChildren();
-
-  const defaultOption = document.createElement("option");
-  defaultOption.value = "";
-  defaultOption.textContent = "Select Team";
-  select.appendChild(defaultOption);
-
-  teams.forEach(team => {
-    const option = document.createElement("option");
-    option.value = team.name;
-    option.textContent = team.name;
-    if (team.name === selectedValue) {
-      option.selected = true;
-    }
-    select.appendChild(option);
-  });
-}
-
-function saveAllTeams() {
-  const names = [
-    $("teamName1").value.trim().toUpperCase(),
-    $("teamName2").value.trim().toUpperCase(),
-    $("teamName3").value.trim().toUpperCase()
-  ];
-
-  if (names.some(name => !name)) {
-    showToast("All three team names are required.", "error");
+if (!toast || !toastMessage) {
     return;
-  }
+}
 
-  const uniqueNames = new Set(names);
-  if (uniqueNames.size !== 3) {
-    showToast("Team names must be unique.", "error");
+
+clearTimeout(
+    toastTimer
+);
+
+
+toastMessage.textContent =
+    message;
+
+
+toast.classList.remove(
+    "success",
+    "error"
+);
+
+
+toast.classList.add(
+    type
+);
+
+
+if (toastIcon) {
+
+    toastIcon.textContent =
+        type === "error"
+            ? "error"
+            : "check_circle";
+
+}
+
+
+toast.classList.add(
+    "show"
+);
+
+
+toastTimer =
+    setTimeout(
+        () => {
+
+            toast.classList.remove(
+                "show"
+            );
+
+        },
+        3200
+    );
+```
+
+}
+
+/* ========================================================
+LOADING
+======================================================== */
+
+function setLoading(
+visible,
+text = "Loading..."
+) {
+
+```
+const overlay =
+    $("adminLoading");
+
+const label =
+    $("adminLoadingText");
+
+
+if (!overlay) {
     return;
-  }
-
-  const oldTeams = ensureDefaultTeams();
-  const oldToNew = new Map();
-  oldTeams.forEach((team, index) => {
-    oldToNew.set(team.name, names[index]);
-  });
-
-  const teams = oldTeams.map((team, index) => ({
-    name: names[index],
-    points: Number(team.points) || 0
-  }));
-
-  setJSON("festTeams", teams);
-
-  const candidates = getJSON("festCandidates", []);
-  candidates.forEach(candidate => {
-    if (oldToNew.has(candidate.group)) {
-      candidate.group = oldToNew.get(candidate.group);
-    }
-  });
-  setJSON("festCandidates", candidates);
-
-  const results = getJSON("festResults", []);
-  results.forEach(result => {
-    [result.firstPlace, result.secondPlace, result.thirdPlace].forEach(place => {
-      if (place && oldToNew.has(place.team)) {
-        place.team = oldToNew.get(place.team);
-      }
-    });
-  });
-  setJSON("festResults", results);
-
-  loadTeamDataToUI();
-  loadAdminCandidatesList();
-  loadAdminResultsList();
-
-  showToast("Team names updated successfully.");
 }
 
-/* =========================================================
-   UPDATES
-========================================================= */
 
-function loadAdminUpdatesList() {
-  const container = $("adminUpdatesList");
-  if (!container) return;
+if (label) {
 
-  container.replaceChildren();
-  const updates = getJSON("festUpdates", []);
+    label.textContent =
+        text;
 
-  if (!Array.isArray(updates) || updates.length === 0) {
-    container.appendChild(emptyMessage("No updates posted yet."));
-    return;
-  }
-
-  updates.forEach((update, index) => {
-    const item = document.createElement("div");
-    item.className = "admin-list-item";
-
-    item.innerHTML = `
-      <div class="list-content">
-        <strong>${escapeHTML(update.title)}</strong>
-        <p>
-          ${escapeHTML(update.time)} • ${escapeHTML(update.type)}
-          ${update.important ? " • IMPORTANT" : ""}
-        </p>
-      </div>
-      <button type="button" class="small-danger-button" data-action="delete-update" data-index="${index}">
-        Delete
-      </button>
-    `;
-    container.appendChild(item);
-  });
 }
 
-function deleteUpdate(index) {
-  const updates = getJSON("festUpdates", []);
-  if (!updates[index]) return;
 
-  if (!confirm("Delete this update?")) return;
+overlay.classList.toggle(
+    "hidden",
+    !visible
+);
+```
 
-  updates.splice(index, 1);
-  setJSON("festUpdates", updates);
-  loadAdminUpdatesList();
-  showToast("Update deleted.");
 }
 
-/* =========================================================
-   CANDIDATES
-========================================================= */
+/* ========================================================
+FIREBASE ERROR
+======================================================== */
 
-function loadAdminCandidatesList() {
-  const container = $("adminCandidatesList");
-  if (!container) return;
+function firebaseErrorMessage(
+error
+) {
 
-  container.replaceChildren();
-  const candidates = getJSON("festCandidates", []);
+```
+console.error(
+    error
+);
 
-  if (!Array.isArray(candidates) || candidates.length === 0) {
-    container.appendChild(emptyMessage("No candidates registered yet."));
-    return;
-  }
 
-  candidates.forEach((candidate, index) => {
-    const item = document.createElement("div");
-    item.className = "admin-list-item";
+if (!error) {
 
-    item.innerHTML = `
-      <div class="list-content">
-        <strong>${escapeHTML(candidate.chest)} — ${escapeHTML(candidate.name)}</strong>
-        <p>${escapeHTML(candidate.group)} • ${escapeHTML(candidate.category)}</p>
-      </div>
-      <div class="list-actions">
-        <button type="button" class="small-edit-button" data-action="edit-candidate" data-index="${index}">Edit</button>
-        <button type="button" class="small-danger-button" data-action="delete-candidate" data-index="${index}">Delete</button>
-      </div>
-    `;
-    container.appendChild(item);
-  });
+    return "An unknown error occurred.";
+
 }
 
-function deleteCandidate(index) {
-  const candidates = getJSON("festCandidates", []);
-  const candidate = candidates[index];
-  if (!candidate) return;
 
-  if (!confirm(`Delete candidate "${candidate.name}" (${candidate.chest})?`)) return;
+switch (
+    error.code
+) {
 
-  candidates.splice(index, 1);
-  setJSON("festCandidates", candidates);
-  loadAdminCandidatesList();
-  refreshCandidateDatalists();
-  showToast("Candidate deleted.");
+    case "permission-denied":
+
+        return "Permission denied. Please check Firebase Rules.";
+
+    case "unavailable":
+
+        return "Firebase is temporarily unavailable.";
+
+    case "failed-precondition":
+
+        return "Firebase operation could not be completed.";
+
+    case "network-request-failed":
+
+        return "Network error. Please check your connection.";
+
+    default:
+
+        return (
+            error.message ||
+            "Something went wrong."
+        );
+
+}
+```
+
 }
 
-function editCandidate(index) {
-  const candidates = getJSON("festCandidates", []);
-  const candidate = candidates[index];
-  if (!candidate) return;
+/* ========================================================
+AUTHORIZATION
+======================================================== */
 
-  const newName = prompt("Edit candidate name:", candidate.name);
-  if (newName === null) return;
+async function verifyAdmin(
+user
+) {
 
-  const cleanName = newName.trim();
-  if (!cleanName) {
-    showToast("Candidate name cannot be empty.", "error");
-    return;
-  }
+```
+if (!user) {
 
-  candidate.name = cleanName;
-  setJSON("festCandidates", candidates);
-  loadAdminCandidatesList();
-  refreshCandidateDatalists();
-  showToast("Candidate updated.");
-}
-
-/* =========================================================
-   PROGRAMMES
-========================================================= */
-
-function loadAdminProgrammesList() {
-  const container = $("adminProgrammesList");
-  if (!container) return;
-
-  container.replaceChildren();
-  const programmes = getJSON("festProgrammes", []);
-
-  if (!Array.isArray(programmes) || programmes.length === 0) {
-    container.appendChild(emptyMessage("No programmes added yet."));
-    populateResultDropdowns();
-    return;
-  }
-
-  programmes.forEach((programme, index) => {
-    const item = document.createElement("div");
-    item.className = "admin-list-item";
-
-    item.innerHTML = `
-      <div class="list-content">
-        <strong>${escapeHTML(programme.title)} (${escapeHTML(programme.category)})</strong>
-        <p>${escapeHTML(programme.venue)} • ${escapeHTML(programme.time)} • ${escapeHTML(programme.status)}</p>
-      </div>
-      <div class="list-actions">
-        <button type="button" class="small-edit-button" data-action="edit-programme" data-index="${index}">Edit</button>
-        <button type="button" class="small-danger-button" data-action="delete-programme" data-index="${index}">Delete</button>
-      </div>
-    `;
-    container.appendChild(item);
-  });
-
-  populateResultDropdowns();
-}
-
-function deleteProgramme(index) {
-  const programmes = getJSON("festProgrammes", []);
-  const programme = programmes[index];
-  if (!programme) return;
-
-  if (!confirm(`Delete programme "${programme.title}"?`)) return;
-
-  const programmeKey = makeProgrammeKey(programme.title, programme.category);
-  const results = getJSON("festResults", []);
-  const hasResults = results.some(result => makeProgrammeKeyFromResult(result) === programmeKey);
-
-  if (hasResults) {
-    showToast("This programme has published results. Delete its results first.", "error");
-    return;
-  }
-
-  programmes.splice(index, 1);
-  setJSON("festProgrammes", programmes);
-  loadAdminProgrammesList();
-  showToast("Programme deleted.");
-}
-
-function editProgramme(index) {
-  const programmes = getJSON("festProgrammes", []);
-  const programme = programmes[index];
-  if (!programme) return;
-
-  const newTitle = prompt("Programme title:", programme.title);
-  if (newTitle === null) return;
-
-  const title = newTitle.trim().toUpperCase();
-  if (!title) {
-    showToast("Programme title cannot be empty.", "error");
-    return;
-  }
-
-  programme.title = title;
-  setJSON("festProgrammes", programmes);
-  loadAdminProgrammesList();
-  showToast("Programme updated.");
-}
-
-/* =========================================================
-   GALLERY UPLOAD
-========================================================= */
-
-function loadAdminGalleryList() {
-  const container = $("adminGalleryList");
-  if (!container) return;
-
-  container.replaceChildren();
-  const gallery = getJSON("festGallery", []);
-
-  if (!Array.isArray(gallery) || gallery.length === 0) {
-    container.appendChild(emptyMessage("No gallery photos uploaded yet."));
-    return;
-  }
-
-  gallery.forEach((item, index) => {
-    const row = document.createElement("div");
-    row.className = "admin-list-item";
-
-    row.innerHTML = `
-      <div class="list-content">
-        <strong>${escapeHTML(item.title)}</strong>
-        <p>${escapeHTML(item.subtitle)}</p>
-      </div>
-      <button type="button" class="small-danger-button" data-action="delete-gallery" data-index="${index}">
-        Delete
-      </button>
-    `;
-    container.appendChild(row);
-  });
-}
-
-function uploadGalleryPhoto() {
-  const title = $("galleryTitle").value.trim();
-  const subtitle = $("gallerySubtitle").value.trim();
-  const fileInput = $("galleryImageFile");
-  const file = fileInput?.files?.[0];
-
-  if (!title || !subtitle || !file) {
-    showToast("Please provide title, subtitle and select an image.", "error");
-    return;
-  }
-
-  if (typeof storage === "undefined") {
-    showToast("Firebase Storage is not initialized.", "error");
-    return;
-  }
-
-  showToast("Uploading image to Firebase Storage...", "success");
-
-  const storageRef = storage.ref(`gallery/${Date.now()}_${file.name}`);
-  storageRef.put(file).then(snapshot => {
-    return snapshot.ref.getDownloadURL();
-  }).then(downloadURL => {
-    const gallery = getJSON("festGallery", []);
-    gallery.unshift({
-      id: `${Date.now()}`,
-      title,
-      subtitle,
-      imageUrl: downloadURL,
-      createdAt: new Date().toISOString()
-    });
-
-    setJSON("festGallery", gallery);
-    $("galleryForm").reset();
-    loadAdminGalleryList();
-    showToast("Photo uploaded successfully to Gallery.");
-  }).catch(error => {
-    console.error("Error uploading gallery image:", error);
-    showToast("Failed to upload image. Try again.", "error");
-  });
-}
-
-function deleteGalleryPhoto(index) {
-  const gallery = getJSON("festGallery", []);
-  if (!gallery[index]) return;
-
-  if (!confirm("Delete this photo from gallery?")) return;
-
-  gallery.splice(index, 1);
-  setJSON("festGallery", gallery);
-  loadAdminGalleryList();
-  showToast("Gallery photo deleted.");
-}
-
-/* =========================================================
-   PROGRAMME KEYS & RESULTS
-========================================================= */
-
-function makeProgrammeKey(title, category) {
-  return `${String(title).trim().toUpperCase()}|||${String(category).trim()}`;
-}
-
-function makeProgrammeKeyFromResult(result) {
-  const value = String(result.programName || "").trim();
-  const match = value.match(/^(.+)\s+\(([^)]+)\)$/);
-  if (!match) return value.toUpperCase();
-  return makeProgrammeKey(match[1], match[2]);
-}
-
-function populateResultDropdowns() {
-  const select = $("progSelectInput");
-  if (!select) return;
-
-  const previous = select.value;
-  select.replaceChildren();
-
-  const first = document.createElement("option");
-  first.value = "";
-  first.textContent = "Select Programme";
-  select.appendChild(first);
-
-  const programmes = getJSON("festProgrammes", []);
-  programmes.forEach(programme => {
-    const option = document.createElement("option");
-    option.value = `${programme.title} (${programme.category})`;
-    option.textContent = `${programme.title} (${programme.category})`;
-    select.appendChild(option);
-  });
-
-  if ([...select.options].some(option => option.value === previous)) {
-    select.value = previous;
-  }
-
-  refreshCandidateDatalists();
-}
-
-function getSelectedProgrammeCategory() {
-  const select = $("progSelectInput");
-  if (!select || !select.value) return "";
-  const match = select.value.match(/\(([^)]+)\)$/);
-  return match ? match[1].trim() : "";
-}
-
-function isCandidateEligible(candidate) {
-  const category = getSelectedProgrammeCategory();
-  if (!category) return true;
-  return (candidate.category === category || candidate.category === "General" || category === "General");
-}
-
-function refreshCandidateDatalists() {
-  const candidates = getJSON("festCandidates", []);
-  ["res1SearchList", "res2SearchList", "res3SearchList"].forEach(listId => {
-    const list = $(listId);
-    if (!list) return;
-
-    list.replaceChildren();
-    candidates.filter(isCandidateEligible).forEach(candidate => {
-      const option = document.createElement("option");
-      option.value = candidate.chest;
-      option.label = `${candidate.name} (${candidate.group})`;
-      list.appendChild(option);
-    });
-  });
-}
-
-function setupCandidateSearch(searchId, chestId, nameId, teamId) {
-  const search = $(searchId);
-  const chest = $(chestId);
-  const name = $(nameId);
-  const team = $(teamId);
-
-  if (!search || !chest || !name || !team) return;
-
-  search.addEventListener("input", () => {
-    const value = search.value.trim();
-    const candidates = getJSON("festCandidates", []);
-    const candidate = candidates.find(item => String(item.chest).toLowerCase() === value.toLowerCase());
-
-    if (!candidate || !isCandidateEligible(candidate)) {
-      chest.value = "";
-      name.value = "";
-      team.value = "";
-      return;
-    }
-
-    chest.value = candidate.chest;
-    name.value = candidate.name;
-    team.value = candidate.group;
-  });
-
-  search.addEventListener("focus", refreshCandidateDatalists);
-}
-
-function getResultPlace(prefix) {
-  const name = $(`${prefix}Name`).value.trim();
-  if (!name) {
-    return { chest: "", name: "---", team: "", grade: "" };
-  }
-  return {
-    chest: $(`${prefix}Chest`).value.trim(),
-    name,
-    team: $(`${prefix}Team`).value,
-    grade: $(`${prefix}Grade`).value
-  };
-}
-
-function validateResultPlace(place, placeName) {
-  if (place.name === "---") return true;
-  if (!place.chest) {
-    showToast(`${placeName}: select a valid candidate.`, "error");
     return false;
-  }
-  if (!place.team) {
-    showToast(`${placeName}: select a team.`, "error");
-    return false;
-  }
-  return true;
+
 }
 
-function calculateTeamPoints(results) {
-  const teams = ensureDefaultTeams();
-  teams.forEach(team => { team.points = 0; });
 
-  results.forEach(result => {
-    const places = [
-      { data: result.firstPlace, points: Number(result.p1Val) || 5 },
-      { data: result.secondPlace, points: Number(result.p2Val) || 3 },
-      { data: result.thirdPlace, points: Number(result.p3Val) || 1 }
-    ];
+try {
 
-    places.forEach(place => {
-      const winner = place.data;
-      if (!winner || !winner.name || winner.name === "---" || !winner.team) return;
+    const adminDoc =
+        await db
+            .collection(
+                ADMIN_COLLECTION
+            )
+            .doc(
+                user.uid
+            )
+            .get();
 
-      const team = teams.find(item => item.name === winner.team);
-      if (!team) return;
 
-      team.points += place.points;
-      team.points += GRADE_POINTS[winner.grade] || 0;
-    });
-  });
+    if (!adminDoc.exists) {
 
-  setJSON("festTeams", teams);
-  return teams;
-}
+        return false;
 
-function publishResult() {
-  const programme = $("progSelectInput").value.trim();
-  if (!programme) {
-    showToast("Please select a programme.", "error");
-    return false;
-  }
-
-  const eventType = $("eventType").value;
-  const p1 = Number($("pts1").value);
-  const p2 = Number($("pts2").value);
-  const p3 = Number($("pts3").value);
-
-  if (!Number.isFinite(p1) || p1 < 0 || !Number.isFinite(p2) || p2 < 0 || !Number.isFinite(p3) || p3 < 0) {
-    showToast("Invalid place points.", "error");
-    return false;
-  }
-
-  const first = getResultPlace("res1");
-  const second = getResultPlace("res2");
-  const third = getResultPlace("res3");
-
-  if (!validateResultPlace(first, "1st Place")) return false;
-  if (!validateResultPlace(second, "2nd Place")) return false;
-  if (!validateResultPlace(third, "3rd Place")) return false;
-
-  const selectedChestNumbers = [first.chest, second.chest, third.chest].filter(Boolean);
-  if (new Set(selectedChestNumbers).size !== selectedChestNumbers.length) {
-    showToast("The same candidate cannot occupy multiple places.", "error");
-    return false;
-  }
-
-  const results = getJSON("festResults", []);
-  const duplicate = results.some(result => {
-    return makeProgrammeKeyFromResult(result) === makeProgrammeKeyFromResult({ programName: programme });
-  });
-
-  if (duplicate) {
-    showToast("A result has already been published for this programme.", "error");
-    return false;
-  }
-
-  const newResult = {
-    id: (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`,
-    programName: programme.toUpperCase(),
-    eventType,
-    p1Val: p1,
-    p2Val: p2,
-    p3Val: p3,
-    firstPlace: first,
-    secondPlace: second,
-    thirdPlace: third,
-    publishedAt: new Date().toISOString()
-  };
-
-  results.unshift(newResult);
-  setJSON("festResults", results);
-
-  calculateTeamPoints(results);
-
-  loadAdminResultsList();
-  loadTeamDataToUI();
-
-  $("resultForm").reset();
-  $("res1Chest").value = "";
-  $("res2Chest").value = "";
-  $("res3Chest").value = "";
-
-  refreshCandidateDatalists();
-  showToast("Result published and team points updated successfully.");
-  return true;
-}
-
-function loadAdminResultsList() {
-  const container = $("adminResultsList");
-  if (!container) return;
-
-  container.replaceChildren();
-  const results = getJSON("festResults", []);
-
-  if (!Array.isArray(results) || results.length === 0) {
-    container.appendChild(emptyMessage("No results published yet."));
-    return;
-  }
-
-  results.forEach((result, index) => {
-    const item = document.createElement("div");
-    item.className = "admin-list-item";
-
-    item.innerHTML = `
-      <div class="list-content">
-        <strong>${escapeHTML(result.programName)}</strong>
-        <p>
-          1st: ${escapeHTML(result.firstPlace?.name || "---")} •
-          2nd: ${escapeHTML(result.secondPlace?.name || "---")} •
-          3rd: ${escapeHTML(result.thirdPlace?.name || "---")}
-        </p>
-      </div>
-      <button type="button" class="small-danger-button" data-action="delete-result" data-index="${index}">
-        Delete
-      </button>
-    `;
-    container.appendChild(item);
-  });
-}
-
-function deleteResult(index) {
-  const results = getJSON("festResults", []);
-  const result = results[index];
-  if (!result) return;
-
-  if (!confirm(`Delete result for "${result.programName}"?\n\nTeam points will be completely recalculated.`)) return;
-
-  results.splice(index, 1);
-  setJSON("festResults", results);
-
-  calculateTeamPoints(results);
-  loadAdminResultsList();
-  loadTeamDataToUI();
-  showToast("Result deleted and team points recalculated.");
-}
-
-/* =========================================================
-   BACKUP & RESET
-========================================================= */
-
-function createBackupData() {
-  return {
-    backupVersion: 1,
-    createdAt: new Date().toISOString(),
-    application: "Sira Dars Fest",
-    festTeams: getJSON("festTeams", DEFAULT_TEAMS),
-    festCandidates: getJSON("festCandidates", []),
-    festProgrammes: getJSON("festProgrammes", []),
-    festResults: getJSON("festResults", []),
-    festUpdates: getJSON("festUpdates", []),
-    festGallery: getJSON("festGallery", [])
-  };
-}
-
-function exportFestBackup() {
-  const backup = createBackupData();
-  const json = JSON.stringify(backup, null, 2);
-  const blob = new Blob([json], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  const date = new Date().toISOString().slice(0, 10);
-
-  link.href = url;
-  link.download = `sira_dars_fest_backup_${date}.json`;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(url);
-
-  showToast("Backup exported successfully.");
-}
-
-function validateBackup(data) {
-  if (!data || typeof data !== "object") return false;
-  const requiredKeys = ["festTeams", "festCandidates", "festProgrammes", "festResults", "festUpdates"];
-  return requiredKeys.every(key => Array.isArray(data[key]));
-}
-
-function importFestBackup(event) {
-  const file = event.target.files?.[0];
-  if (!file) return;
-
-  const reader = new FileReader();
-  reader.onload = () => {
-    try {
-      const imported = JSON.parse(reader.result);
-      if (!validateBackup(imported)) {
-        throw new Error("Invalid backup structure");
-      }
-
-      if (!confirm("Import this backup?\n\nCurrent festival data will be replaced.")) {
-        event.target.value = "";
-        return;
-      }
-
-      setJSON("festTeams", imported.festTeams);
-      setJSON("festCandidates", imported.festCandidates);
-      setJSON("festProgrammes", imported.festProgrammes);
-      setJSON("festResults", imported.festResults);
-      setJSON("festUpdates", imported.festUpdates);
-      if (imported.festGallery) {
-        setJSON("festGallery", imported.festGallery);
-      }
-
-      calculateTeamPoints(imported.festResults);
-      showToast("Backup imported successfully.");
-
-      setTimeout(() => {
-        window.location.reload();
-      }, 700);
-
-    } catch (error) {
-      console.error(error);
-      showToast("Invalid or corrupted JSON backup.", "error");
-    }
-    event.target.value = "";
-  };
-
-  reader.onerror = () => {
-    showToast("Unable to read backup file.", "error");
-    event.target.value = "";
-  };
-
-  reader.readAsText(file);
-}
-
-function resetFestData() {
-  const first = confirm(
-    "WARNING\n\n" +
-    "This will delete candidates, programmes, results and updates.\n\n" +
-    "Do you want to export a backup first?"
-  );
-
-  if (first) {
-    exportFestBackup();
-  }
-
-  const second = confirm("FINAL CONFIRMATION\n\nAre you absolutely sure you want to reset ALL festival data?");
-  if (!second) return;
-
-  setJSON("festTeams", structuredClone(DEFAULT_TEAMS));
-  setJSON("festProgrammes", []);
-  setJSON("festCandidates", []);
-  setJSON("festResults", []);
-  setJSON("festUpdates", []);
-  setJSON("festGallery", []);
-
-  showToast("Festival data has been reset.");
-  setTimeout(() => {
-    window.location.reload();
-  }, 700);
-}
-
-function emptyMessage(message) {
-  const element = document.createElement("div");
-  element.className = "empty-message";
-  element.textContent = message;
-  return element;
-}
-
-/* =========================================================
-   EVENT SETUP & INITIALIZATION
-========================================================= */
-
-function setupForms() {
-  $("saveTeamsButton")?.addEventListener("click", saveAllTeams);
-
-  $("galleryForm")?.addEventListener("submit", event => {
-    event.preventDefault();
-    uploadGalleryPhoto();
-  });
-
-  $("updateForm")?.addEventListener("submit", event => {
-    event.preventDefault();
-
-    const title = $("updateTitle").value.trim();
-    const desc = $("updateDesc").value.trim();
-    const time = $("updateTime").value.trim() || getCurrentDateTimeString();
-    const type = $("updateType").value;
-    const important = $("updateImportant").checked;
-
-    if (!title || !desc) {
-      showToast("Please complete update title and description.", "error");
-      return;
     }
 
-    const updates = getJSON("festUpdates", []);
-    updates.unshift({
-      id: (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`,
-      title,
-      desc,
-      time,
-      type,
-      important,
-      createdAt: new Date().toISOString()
-    });
 
-    setJSON("festUpdates", updates);
-    $("updateForm").reset();
-    $("updateTime").value = getCurrentDateTimeString();
-    loadAdminUpdatesList();
-    showToast("Fest update posted successfully.");
-  });
+    const data =
+        adminDoc.data() || {};
 
-  $("candidateForm")?.addEventListener("submit", event => {
-    event.preventDefault();
 
-    const chest = $("candChest").value.trim();
-    const name = $("candName").value.trim();
-    const group = $("candGroup").value;
-    const category = $("candCategory").value;
-
-    if (!chest || !name || !group || !category) {
-      showToast("Please complete all candidate fields.", "error");
-      return;
-    }
-
-    const candidates = getJSON("festCandidates", []);
-    const exists = candidates.some(candidate => String(candidate.chest).toLowerCase() === chest.toLowerCase());
-
-    if (exists) {
-      showToast("Chest number already exists.", "error");
-      return;
-    }
-
-    candidates.push({
-      chest,
-      name,
-      group,
-      category,
-      registeredAt: new Date().toISOString()
-    });
-
-    setJSON("festCandidates", candidates);
-    $("candidateForm").reset();
-    loadAdminCandidatesList();
-    refreshCandidateDatalists();
-    showToast("Candidate registered successfully.");
-  });
-
-  $("programmeForm")?.addEventListener("submit", event => {
-    event.preventDefault();
-
-    const title = $("progTitle").value.trim().toUpperCase();
-    const category = $("progCat").value;
-    const venue = $("progVenue").value.trim();
-    const time = $("progTime").value.trim();
-    const status = $("progStatus").value.trim() || "Upcoming";
-
-    if (!title || !category || !venue || !time) {
-      showToast("Please complete all programme fields.", "error");
-      return;
-    }
-
-    const programmes = getJSON("festProgrammes", []);
-    const duplicate = programmes.some(
-      programme => makeProgrammeKey(programme.title, programme.category) === makeProgrammeKey(title, category)
+    return (
+        safeString(
+            data.role
+        ).toLowerCase() ===
+        "admin"
     );
 
-    if (duplicate) {
-      showToast("This programme already exists.", "error");
-      return;
-    }
 
-    programmes.push({
-      title,
-      category,
-      venue,
-      time,
-      status,
-      createdAt: new Date().toISOString()
-    });
+} catch (error) {
 
-    setJSON("festProgrammes", programmes);
-    $("programmeForm").reset();
-    loadAdminProgrammesList();
-    showToast("Programme added successfully.");
-  });
+    console.error(
+        "Admin verification failed:",
+        error
+    );
 
-  $("resultForm")?.addEventListener("submit", event => {
-    event.preventDefault();
-    publishResult();
-  });
+    return false;
+
+}
+```
+
 }
 
-function setupListActions() {
-  $("adminUpdatesList")?.addEventListener("click", event => {
-    const button = event.target.closest("button");
-    if (!button) return;
-    const index = Number(button.dataset.index);
-    if (button.dataset.action === "delete-update") {
-      deleteUpdate(index);
-    }
-  });
+/* ========================================================
+AUTH STATE
+======================================================== */
 
-  $("adminGalleryList")?.addEventListener("click", event => {
-    const button = event.target.closest("button");
-    if (!button) return;
-    const index = Number(button.dataset.index);
-    if (button.dataset.action === "delete-gallery") {
-      deleteGalleryPhoto(index);
-    }
-  });
+auth.onAuthStateChanged(
+async user => {
 
-  $("adminCandidatesList")?.addEventListener("click", event => {
-    const button = event.target.closest("button");
-    if (!button) return;
-    const index = Number(button.dataset.index);
-    if (button.dataset.action === "edit-candidate") {
-      editCandidate(index);
-    } else if (button.dataset.action === "delete-candidate") {
-      deleteCandidate(index);
-    }
-  });
+```
+    currentUser =
+        user || null;
 
-  $("adminProgrammesList")?.addEventListener("click", event => {
-    const button = event.target.closest("button");
-    if (!button) return;
-    const index = Number(button.dataset.index);
-    if (button.dataset.action === "edit-programme") {
-      editProgramme(index);
-    } else if (button.dataset.action === "delete-programme") {
-      deleteProgramme(index);
-    }
-  });
 
-  $("adminResultsList")?.addEventListener("click", event => {
-    const button = event.target.closest("button");
-    if (!button) return;
-    const index = Number(button.dataset.index);
-    if (button.dataset.action === "delete-result") {
-      deleteResult(index);
+    if (!user) {
+
+        window.location.replace(
+            "admin-login.html"
+        );
+
+        return;
+
     }
-  });
+
+
+    const isAdmin =
+        await verifyAdmin(
+            user
+        );
+
+
+    if (!isAdmin) {
+
+        await auth.signOut();
+
+        window.location.replace(
+            "admin-login.html"
+        );
+
+        return;
+
+    }
+
+
+    const email =
+        $("adminUserEmail");
+
+
+    if (email) {
+
+        email.textContent =
+            user.email ||
+            "Admin";
+
+    }
+
+
+    initializeAdmin();
+
 }
+```
 
-function setupLogout() {
-  $("logoutButton")?.addEventListener("click", () => {
-    if (!confirm("Logout from the admin panel?")) return;
-    auth.signOut().then(() => {
-      window.location.replace("admin-login.html");
-    });
-  });
-}
+);
 
-function setupBackupControls() {
-  $("exportBackupButton")?.addEventListener("click", exportFestBackup);
-  $("importFile")?.addEventListener("change", importFestBackup);
-  $("resetButton")?.addEventListener("click", resetFestData);
-}
+/* ========================================================
+INITIALIZE
+======================================================== */
 
-function setupProgrammeChange() {
-  $("progSelectInput")?.addEventListener("change", () => {
-    ["res1", "res2", "res3"].forEach(prefix => {
-      $(`${prefix}Search`).value = "";
-      $(`${prefix}Chest`).value = "";
-      $(`${prefix}Name`).value = "";
-      $(`${prefix}Team`).value = "";
-      $(`${prefix}Grade`).value = "";
-    });
-    refreshCandidateDatalists();
-  });
-}
+async function initializeAdmin() {
 
-function initializeAdminPanel() {
-  if ($("updateTime")) {
-    $("updateTime").value = getCurrentDateTimeString();
-  }
+```
+try {
 
-  initAdminFirebaseSync(() => {
-    ensureDefaultTeams();
-    loadTeamDataToUI();
-    loadAdminUpdatesList();
-    loadAdminCandidatesList();
-    loadAdminProgrammesList();
-    loadAdminGalleryList();
-    loadAdminResultsList();
-    populateResultDropdowns();
+    setupNavigation();
 
-    setupCandidateSearch("res1Search", "res1Chest", "res1Name", "res1Team");
-    setupCandidateSearch("res2Search", "res2Chest", "res2Name", "res2Team");
-    setupCandidateSearch("res3Search", "res3Chest", "res3Name", "res3Team");
+    setupMobileMenu();
+
+    setupLogout();
 
     setupForms();
-    setupListActions();
-    setupLogout();
-    setupBackupControls();
-    setupProgrammeChange();
-    refreshCandidateDatalists();
-  });
+
+    setupBackup();
+
+    setupSearch();
+
+    setupConnectionStatus();
+
+    initializeRealtimeListeners();
+
+} catch (error) {
+
+    console.error(
+        "Admin initialization failed:",
+        error
+    );
+
+    showToast(
+        "Admin panel could not initialize.",
+        "error"
+    );
+
 }
+```
+
+}
+
+/* ========================================================
+NAVIGATION
+======================================================== */
+
+function setupNavigation() {
+
+```
+const links =
+    document.querySelectorAll(
+        ".admin-nav-link"
+    );
+
+
+links.forEach(
+    link => {
+
+        link.addEventListener(
+            "click",
+            event => {
+
+                event.preventDefault();
+
+
+                const section =
+                    link.dataset.section;
+
+
+                switchSection(
+                    section
+                );
+
+
+                history.replaceState(
+                    null,
+                    "",
+                    `#${section}`
+                );
+
+
+                const sidebar =
+                    $("adminSidebar");
+
+
+                if (sidebar) {
+
+                    sidebar.classList.remove(
+                        "show"
+                    );
+
+                }
+
+            }
+        );
+
+    }
+);
+
+
+const hash =
+    window.location.hash
+        .replace(
+            "#",
+            ""
+        );
+
+
+if (hash) {
+
+    switchSection(
+        hash
+    );
+
+}
+```
+
+}
+
+function switchSection(
+section
+) {
+
+```
+const sections =
+    document.querySelectorAll(
+        ".admin-section"
+    );
+
+
+const links =
+    document.querySelectorAll(
+        ".admin-nav-link"
+    );
+
+
+sections.forEach(
+    item => {
+
+        item.classList.toggle(
+            "active",
+            item.id ===
+            `${section}Section`
+        );
+
+    }
+);
+
+
+links.forEach(
+    link => {
+
+        link.classList.toggle(
+            "active",
+            link.dataset.section ===
+            section
+        );
+
+    }
+);
+```
+
+}
+
+/* ========================================================
+MOBILE MENU
+======================================================== */
+
+function setupMobileMenu() {
+
+```
+const button =
+    $("mobileMenuBtn");
+
+const sidebar =
+    $("adminSidebar");
+
+
+if (!button || !sidebar) {
+    return;
+}
+
+
+button.addEventListener(
+    "click",
+    () => {
+
+        sidebar.classList.toggle(
+            "show"
+        );
+
+    }
+);
+```
+
+}
+
+/* ========================================================
+LOGOUT
+======================================================== */
+
+function setupLogout() {
+
+```
+const button =
+    $("logoutBtn");
+
+
+if (!button) {
+    return;
+}
+
+
+button.addEventListener(
+    "click",
+    async () => {
+
+        const confirmed =
+            confirm(
+                "Do you want to log out?"
+            );
+
+
+        if (!confirmed) {
+            return;
+        }
+
+
+        try {
+
+            await auth.signOut();
+
+        } catch (error) {
+
+            showToast(
+                firebaseErrorMessage(
+                    error
+                ),
+                "error"
+            );
+
+        }
+
+    }
+);
+```
+
+}
+
+/* ========================================================
+CONNECTION STATUS
+======================================================== */
+
+function setupConnectionStatus() {
+
+```
+const update =
+    () => {
+
+        const connected =
+            navigator.onLine;
+
+
+        const status =
+            $("connectionStatus");
+
+        const dot =
+            $("connectionDot");
+
+        const text =
+            $("connectionText");
+
+        const dashboardStatus =
+            $("dashboardConnectionStatus");
+
+        const dashboardText =
+            $("dashboardConnectionText");
+
+
+        if (connected) {
+
+            if (status) {
+
+                status.classList.remove(
+                    "offline"
+                );
+
+                status.classList.add(
+                    "online"
+                );
+
+            }
+
+
+            if (dot) {
+
+                dot.style.background =
+                    "";
+
+            }
+
+
+            if (text) {
+
+                text.textContent =
+                    "Online";
+
+            }
+
+
+            if (dashboardStatus) {
+
+                dashboardStatus.textContent =
+                    "Online";
+
+            }
+
+
+            if (dashboardText) {
+
+                dashboardText.textContent =
+                    "Connected to the network";
+
+            }
+
+        } else {
+
+            if (status) {
+
+                status.classList.remove(
+                    "online"
+                );
+
+                status.classList.add(
+                    "offline"
+                );
+
+            }
+
+
+            if (text) {
+
+                text.textContent =
+                    "Offline";
+
+            }
+
+
+            if (dashboardStatus) {
+
+                dashboardStatus.textContent =
+                    "Offline";
+
+            }
+
+
+            if (dashboardText) {
+
+                dashboardText.textContent =
+                    "Network connection unavailable";
+
+            }
+
+        }
+
+    };
+
+
+window.addEventListener(
+    "online",
+    update
+);
+
+
+window.addEventListener(
+    "offline",
+    update
+);
+
+
+update();
+```
+
+}
+
+/* ========================================================
+REALTIME LISTENERS
+======================================================== */
+
+function initializeRealtimeListeners() {
+
+```
+removeListeners();
+
+
+listenToCollection(
+    TEAMS_COLLECTION,
+    "teams"
+);
+
+
+listenToCollection(
+    CANDIDATES_COLLECTION,
+    "candidates"
+);
+
+
+listenToCollection(
+    PROGRAMMES_COLLECTION,
+    "programmes"
+);
+
+
+listenToCollection(
+    RESULTS_COLLECTION,
+    "results"
+);
+
+
+listenToCollection(
+    UPDATES_COLLECTION,
+    "updates"
+);
+```
+
+}
+
+function removeListeners() {
+
+```
+while (
+    listeners.length
+) {
+
+    const unsubscribe =
+        listeners.pop();
+
+
+    try {
+
+        unsubscribe();
+
+    } catch (error) {
+
+        console.warn(
+            error
+        );
+
+    }
+
+}
+```
+
+}
+
+function listenToCollection(
+collectionName,
+cacheKey
+) {
+
+```
+const unsubscribe =
+    db
+        .collection(
+            collectionName
+        )
+        .onSnapshot(
+            snapshot => {
+
+                adminCache[
+                    cacheKey
+                ] =
+                    snapshot.docs.map(
+                        doc => ({
+
+                            id:
+                                doc.id,
+
+                            ...doc.data()
+
+                        })
+                    );
+
+
+                dataReady[
+                    cacheKey
+                ] = true;
+
+
+                if (
+                    cacheKey ===
+                    "results"
+                ) {
+
+                    rebuildTeamPoints();
+
+                }
+
+
+                renderEverything();
+
+            },
+            error => {
+
+                console.error(
+                    `Listener error: ${collectionName}`,
+                    error
+                );
+
+
+                showToast(
+                    `Unable to sync ${cacheKey}.`,
+                    "error"
+                );
+
+            }
+        );
+
+
+listeners.push(
+    unsubscribe
+);
+```
+
+}
+
+/* ========================================================
+RENDER EVERYTHING
+======================================================== */
+
+function renderEverything() {
+
+```
+renderDashboard();
+
+renderTeams();
+
+renderUpdates();
+
+renderCandidates();
+
+renderProgrammes();
+
+renderResults();
+
+populateTeamSelect();
+
+populateProgrammeSelect();
+
+updateResultPlacePoints();
+
+updateLastUpdated();
+```
+
+}
+
+/* ========================================================
+DASHBOARD
+======================================================== */
+
+function renderDashboard() {
+
+```
+const teamCount =
+    $("statTeams");
+
+const candidateCount =
+    $("statCandidates");
+
+const programmeCount =
+    $("statProgrammes");
+
+const resultCount =
+    $("statResults");
+
+
+if (teamCount) {
+
+    teamCount.textContent =
+        adminCache.teams.length;
+
+}
+
+
+if (candidateCount) {
+
+    candidateCount.textContent =
+        adminCache.candidates.length;
+
+}
+
+
+if (programmeCount) {
+
+    programmeCount.textContent =
+        adminCache.programmes.length;
+
+}
+
+
+if (resultCount) {
+
+    resultCount.textContent =
+        adminCache.results.length;
+
+}
+
+
+const container =
+    $("dashboardTeamPoints");
+
+
+if (!container) {
+    return;
+}
+
+
+const teams =
+    [...adminCache.teams]
+        .sort(
+            (a, b) =>
+                numberValue(
+                    b.points
+                ) -
+                numberValue(
+                    a.points
+                )
+        );
+
+
+if (!teams.length) {
+
+    container.innerHTML =
+        `
+        <div class="empty-state">
+            No team data yet.
+        </div>
+        `;
+
+    return;
+
+}
+
+
+container.innerHTML =
+    teams
+        .map(
+            team => `
+
+                <div class="team-point-row">
+
+                    <div class="team-point-name">
+                        ${escapeHTML(
+                            team.name
+                        )}
+                    </div>
+
+                    <div class="team-point-value">
+                        ${numberValue(
+                            team.points
+                        )}
+                    </div>
+
+                </div>
+
+            `
+        )
+        .join("");
+```
+
+}
+
+/* ========================================================
+TEAM MANAGEMENT
+======================================================== */
+
+function renderTeams() {
+
+```
+const list =
+    $("teamsList");
+
+
+if (!list) {
+    return;
+}
+
+
+if (
+    adminCache.teams.length === 0
+) {
+
+    list.innerHTML =
+        `
+        <div class="empty-state">
+            No teams found.
+        </div>
+        `;
+
+    return;
+
+}
+
+
+list.innerHTML =
+    adminCache.teams
+        .map(
+            team => `
+
+                <div class="admin-list-item">
+
+                    <div class="list-item-main">
+
+                        <div class="list-item-title">
+                            ${escapeHTML(
+                                team.name
+                            )}
+                        </div>
+
+                        <div class="list-item-meta">
+
+                            <span>
+                                Points:
+                                ${numberValue(
+                                    team.points
+                                )}
+                            </span>
+
+                            <span>
+                                ${escapeHTML(
+                                    team.id
+                                )}
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            `
+        )
+        .join("");
+
+
+loadTeamsIntoForm();
+```
+
+}
+
+function loadTeamsIntoForm() {
+
+```
+const sorted =
+    [...adminCache.teams]
+        .sort(
+            (a, b) =>
+                String(a.id)
+                    .localeCompare(
+                        String(b.id)
+                    )
+        );
+
+
+const values =
+    sorted.length === 3
+        ? sorted
+        : DEFAULT_TEAMS;
+
+
+if ($("team1Name")) {
+
+    $("team1Name").value =
+        values[0]?.name || "";
+
+}
+
+
+if ($("team2Name")) {
+
+    $("team2Name").value =
+        values[1]?.name || "";
+
+}
+
+
+if ($("team3Name")) {
+
+    $("team3Name").value =
+        values[2]?.name || "";
+
+}
+```
+
+}
+
+/* ========================================================
+SAVE TEAMS
+======================================================== */
+
+async function saveTeams(
+event
+) {
+
+```
+event.preventDefault();
+
+
+const names = [
+
+    safeString(
+        $("team1Name")?.value
+    ),
+
+    safeString(
+        $("team2Name")?.value
+    ),
+
+    safeString(
+        $("team3Name")?.value
+    )
+
+];
+
+
+if (
+    names.some(
+        name => !name
+    )
+) {
+
+    showToast(
+        "All three team names are required.",
+        "error"
+    );
+
+    return;
+
+}
+
+
+const normalized =
+    names.map(
+        normalize
+    );
+
+
+if (
+    new Set(
+        normalized
+    ).size !== 3
+) {
+
+    showToast(
+        "Team names must be unique.",
+        "error"
+    );
+
+    return;
+
+}
+
+
+if (
+    adminCache.teams.length !== 3
+) {
+
+    showToast(
+        "The system must contain exactly three teams.",
+        "error"
+    );
+
+    return;
+
+}
+
+
+setLoading(
+    true,
+    "Saving teams..."
+);
+
+
+try {
+
+    const batch =
+        db.batch();
+
+
+    const oldTeams =
+        [...adminCache.teams]
+            .sort(
+                (a, b) =>
+                    String(a.id)
+                        .localeCompare(
+                            String(b.id)
+                        )
+            );
+
+
+    for (
+        let i = 0;
+        i < 3;
+        i++
+    ) {
+
+        const team =
+            oldTeams[i];
+
+
+        const ref =
+            db
+                .collection(
+                    TEAMS_COLLECTION
+                )
+                .doc(
+                    team.id
+                );
+
+
+        batch.update(
+            ref,
+            {
+
+                name:
+                    names[i]
+                        .toUpperCase(),
+
+                updatedAt:
+                    firebase.firestore.FieldValue
+                        .serverTimestamp()
+
+            }
+        );
+
+    }
+
+
+    await batch.commit();
+
+
+    /*
+     * Existing candidates/results keep their
+     * teamId. We update the displayed team name
+     * by resolving teamId at render/calculation time.
+     */
+
+    showToast(
+        "Teams updated successfully."
+    );
+
+
+} catch (error) {
+
+    showToast(
+        firebaseErrorMessage(
+            error
+        ),
+        "error"
+    );
+
+} finally {
+
+    setLoading(
+        false
+    );
+
+}
+```
+
+}
+
+/* ========================================================
+TEAM HELPERS
+======================================================== */
+
+function findTeamById(
+teamId
+) {
+
+```
+return adminCache.teams.find(
+    team =>
+        team.id ===
+        teamId
+);
+```
+
+}
+
+function findTeamByName(
+name
+) {
+
+```
+const target =
+    normalize(
+        name
+    );
+
+
+return adminCache.teams.find(
+    team =>
+        normalize(
+            team.name
+        ) === target
+);
+```
+
+}
+
+function teamName(
+teamId
+) {
+
+```
+const team =
+    findTeamById(
+        teamId
+    );
+
+
+return team
+    ? team.name
+    : "";
+```
+
+}
+
+/* ========================================================
+UPDATES
+======================================================== */
+
+function renderUpdates() {
+
+```
+const list =
+    $("updatesList");
+
+
+if (!list) {
+    return;
+}
+
+
+const items =
+    [...adminCache.updates]
+        .sort(
+            (a, b) =>
+                numberValue(
+                    b.createdAtMillis
+                ) -
+                numberValue(
+                    a.createdAtMillis
+                )
+        );
+
+
+if (!items.length) {
+
+    list.innerHTML =
+        `
+        <div class="empty-state">
+            No updates published yet.
+        </div>
+        `;
+
+    return;
+
+}
+
+
+list.innerHTML =
+    items
+        .map(
+            item => `
+
+                <div class="admin-list-item">
+
+                    <div class="list-item-main">
+
+                        <div class="list-item-title">
+
+                            ${escapeHTML(
+                                item.title
+                            )}
+
+                        </div>
+
+                        <div class="list-item-meta">
+
+                            <span>
+                                ${escapeHTML(
+                                    item.type ||
+                                    "General"
+                                )}
+                            </span>
+
+                            ${
+                                item.important
+                                    ? `
+                                        <span>
+                                            Important
+                                        </span>
+                                      `
+                                    : ""
+                            }
+
+                        </div>
+
+                        <div class="list-item-description">
+
+                            ${escapeHTML(
+                                item.description
+                            )}
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="list-item-actions">
+
+                        <button
+                            type="button"
+                            class="icon-btn"
+                            data-action="edit-update"
+                            data-id="${escapeHTML(
+                                item.id
+                            )}"
+                            aria-label="Edit update"
+                        >
+
+                            <span class="material-symbols-rounded">
+                                edit
+                            </span>
+
+                        </button>
+
+
+                        <button
+                            type="button"
+                            class="icon-btn danger"
+                            data-action="delete-update"
+                            data-id="${escapeHTML(
+                                item.id
+                            )}"
+                            aria-label="Delete update"
+                        >
+
+                            <span class="material-symbols-rounded">
+                                delete
+                            </span>
+
+                        </button>
+
+                    </div>
+
+                </div>
+
+            `
+        )
+        .join("");
+
+
+list
+    .querySelectorAll(
+        "[data-action='edit-update']"
+    )
+    .forEach(
+        button => {
+
+            button.addEventListener(
+                "click",
+                () =>
+                    editUpdate(
+                        button.dataset.id
+                    )
+            );
+
+        }
+    );
+
+
+list
+    .querySelectorAll(
+        "[data-action='delete-update']"
+    )
+    .forEach(
+        button => {
+
+            button.addEventListener(
+                "click",
+                () =>
+                    deleteUpdate(
+                        button.dataset.id
+                    )
+            );
+
+        }
+    );
+```
+
+}
+
+/* ========================================================
+SAVE UPDATE
+======================================================== */
+
+async function saveUpdate(
+event
+) {
+
+```
+event.preventDefault();
+
+
+const title =
+    safeString(
+        $("updateTitle")?.value
+    );
+
+const description =
+    safeString(
+        $("updateDescription")?.value
+    );
+
+const type =
+    safeString(
+        $("updateType")?.value
+    ) ||
+    "General";
+
+const displayTime =
+    safeString(
+        $("updateTime")?.value
+    );
+
+const important =
+    Boolean(
+        $("updateImportant")?.checked
+    );
+
+const editId =
+    safeString(
+        $("updateEditId")?.value
+    );
+
+
+if (
+    !title ||
+    !description
+) {
+
+    showToast(
+        "Title and description are required.",
+        "error"
+    );
+
+    return;
+
+}
+
+
+setLoading(
+    true,
+    editId
+        ? "Updating..."
+        : "Publishing..."
+);
+
+
+try {
+
+    const data = {
+
+        title,
+
+        description,
+
+        type,
+
+        displayTime,
+
+        important,
+
+        updatedAt:
+            firebase.firestore.FieldValue
+                .serverTimestamp()
+
+    };
+
+
+    if (editId) {
+
+        await db
+            .collection(
+                UPDATES_COLLECTION
+            )
+            .doc(
+                editId
+            )
+            .update(
+                data
+            );
+
+
+        showToast(
+            "Update edited successfully."
+        );
+
+    } else {
+
+        data.createdAt =
+            firebase.firestore.FieldValue
+                .serverTimestamp();
+
+
+        await db
+            .collection(
+                UPDATES_COLLECTION
+            )
+            .add(
+                data
+            );
+
+
+        showToast(
+            "Update published successfully."
+        );
+
+    }
+
+
+    resetUpdateForm();
+
+
+} catch (error) {
+
+    showToast(
+        firebaseErrorMessage(
+            error
+        ),
+        "error"
+    );
+
+} finally {
+
+    setLoading(
+        false
+    );
+
+}
+```
+
+}
+
+/* ========================================================
+EDIT UPDATE
+======================================================== */
+
+function editUpdate(
+id
+) {
+
+```
+const item =
+    adminCache.updates.find(
+        update =>
+            update.id === id
+    );
+
+
+if (!item) {
+    return;
+}
+
+
+$("updateEditId").value =
+    item.id;
+
+$("updateTitle").value =
+    item.title || "";
+
+$("updateDescription").value =
+    item.description || "";
+
+$("updateType").value =
+    item.type || "General";
+
+$("updateTime").value =
+    item.displayTime || "";
+
+$("updateImportant").checked =
+    Boolean(
+        item.important
+    );
+
+
+$("saveUpdateBtn").innerHTML =
+    `
+    <span class="material-symbols-rounded">
+        save
+    </span>
+    Save Changes
+    `;
+
+
+$("cancelUpdateEdit")
+    ?.classList.remove(
+        "hidden"
+    );
+
+
+switchSection(
+    "updates"
+);
+
+
+window.scrollTo(
+    {
+        top: 0,
+        behavior: "smooth"
+    }
+);
+```
+
+}
+
+function resetUpdateForm() {
+
+```
+$("updateForm")
+    ?.reset();
+
+
+$("updateEditId").value =
+    "";
+
+
+$("saveUpdateBtn").innerHTML =
+    `
+    <span class="material-symbols-rounded">
+        publish
+    </span>
+    Publish Update
+    `;
+
+
+$("cancelUpdateEdit")
+    ?.classList.add(
+        "hidden"
+    );
+```
+
+}
+
+/* ========================================================
+DELETE UPDATE
+======================================================== */
+
+async function deleteUpdate(
+id
+) {
+
+```
+const confirmed =
+    confirm(
+        "Delete this update?"
+    );
+
+
+if (!confirmed) {
+    return;
+}
+
+
+try {
+
+    await db
+        .collection(
+            UPDATES_COLLECTION
+        )
+        .doc(
+            id
+        )
+        .delete();
+
+
+    showToast(
+        "Update deleted."
+    );
+
+
+} catch (error) {
+
+    showToast(
+        firebaseErrorMessage(
+            error
+        ),
+        "error"
+    );
+
+}
+```
+
+}
+
+/* ========================================================
+CANDIDATE FORM
+======================================================== */
+
+function populateTeamSelect() {
+
+```
+const select =
+    $("candidateTeam");
+
+
+if (!select) {
+    return;
+}
+
+
+const current =
+    select.value;
+
+
+select.innerHTML =
+    `
+    <option value="">
+        Select Team
+    </option>
+    ` +
+    adminCache.teams
+        .map(
+            team => `
+
+                <option value="${escapeHTML(
+                    team.id
+                )}">
+
+                    ${escapeHTML(
+                        team.name
+                    )}
+
+                </option>
+
+            `
+        )
+        .join("");
+
+
+if (current) {
+
+    select.value =
+        current;
+
+}
+```
+
+}
+
+function saveCandidateForm(
+event
+) {
+
+```
+event.preventDefault();
+
+saveCandidate();
+```
+
+}
+
+async function saveCandidate() {
+
+```
+const editId =
+    safeString(
+        $("candidateEditId")?.value
+    );
+
+
+const chest =
+    safeString(
+        $("candidateChest")?.value
+    );
+
+
+const name =
+    safeString(
+        $("candidateName")?.value
+    );
+
+
+const teamId =
+    safeString(
+        $("candidateTeam")?.value
+    );
+
+
+const category =
+    safeString(
+        $("candidateCategory")?.value
+    );
+
+
+if (
+    !chest ||
+    !name ||
+    !teamId ||
+    !category
+) {
+
+    showToast(
+        "All candidate fields are required.",
+        "error"
+    );
+
+    return;
+
+}
+
+
+if (
+    !VALID_CATEGORIES.includes(
+        category
+    )
+) {
+
+    showToast(
+        "Invalid candidate category.",
+        "error"
+    );
+
+    return;
+
+}
+
+
+const team =
+    findTeamById(
+        teamId
+    );
+
+
+if (!team) {
+
+    showToast(
+        "Please select a valid team.",
+        "error"
+    );
+
+    return;
+
+}
+
+
+const duplicate =
+    adminCache.candidates.find(
+        candidate =>
+            normalize(
+                candidate.chest
+            ) ===
+            normalize(
+                chest
+            ) &&
+            candidate.id !==
+            editId
+    );
+
+
+if (duplicate) {
+
+    showToast(
+        "That chest number is already registered.",
+        "error"
+    );
+
+    return;
+
+}
+
+
+setLoading(
+    true,
+    editId
+        ? "Updating candidate..."
+        : "Registering candidate..."
+);
+
+
+try {
+
+    const data = {
+
+        chest,
+
+        name,
+
+        teamId,
+
+        category,
+
+        updatedAt:
+            firebase.firestore.FieldValue
+                .serverTimestamp()
+
+    };
+
+
+    if (editId) {
+
+        await db
+            .collection(
+                CANDIDATES_COLLECTION
+            )
+            .doc(
+                editId
+            )
+            .update(
+                data
+            );
+
+
+        showToast(
+            "Candidate updated successfully."
+        );
+
+    } else {
+
+        data.createdAt =
+            firebase.firestore.FieldValue
+                .serverTimestamp();
+
+
+        await db
+            .collection(
+                CANDIDATES_COLLECTION
+            )
+            .add(
+                data
+            );
+
+
+        showToast(
+            "Candidate registered successfully."
+        );
+
+    }
+
+
+    resetCandidateForm();
+
+
+} catch (error) {
+
+    showToast(
+        firebaseErrorMessage(
+            error
+        ),
+        "error"
+    );
+
+} finally {
+
+    setLoading(
+        false
+    );
+
+}
+```
+
+}
+
+/* ========================================================
+CANDIDATE LIST
+======================================================== */
+
+function renderCandidates() {
+
+```
+const list =
+    $("candidatesList");
+
+
+if (!list) {
+    return;
+}
+
+
+const search =
+    normalize(
+        $("candidateAdminSearch")
+            ?.value
+    );
+
+
+let items =
+    [...adminCache.candidates];
+
+
+if (search) {
+
+    items =
+        items.filter(
+            candidate =>
+                normalize(
+                    candidate.chest
+                ).includes(
+                    search
+                ) ||
+                normalize(
+                    candidate.name
+                ).includes(
+                    search
+                ) ||
+                normalize(
+                    candidate.category
+                ).includes(
+                    search
+                ) ||
+                normalize(
+                    teamName(
+                        candidate.teamId
+                    )
+                ).includes(
+                    search
+                )
+        );
+
+}
+
+
+items.sort(
+    (a, b) =>
+        normalize(
+            a.name
+        ).localeCompare(
+            normalize(
+                b.name
+            )
+        )
+);
+
+
+if (!items.length) {
+
+    list.innerHTML =
+        `
+        <div class="empty-state">
+            No candidates found.
+        </div>
+        `;
+
+    return;
+
+}
+
+
+list.innerHTML =
+    items
+        .map(
+            candidate => `
+
+                <div class="admin-list-item">
+
+                    <div class="list-item-main">
+
+                        <div class="list-item-title">
+
+                            ${escapeHTML(
+                                candidate.name
+                            )}
+
+                        </div>
+
+                        <div class="list-item-meta">
+
+                            <span>
+                                Chest:
+                                ${escapeHTML(
+                                    candidate.chest
+                                )}
+                            </span>
+
+                            <span>
+                                ${escapeHTML(
+                                    teamName(
+                                        candidate.teamId
+                                    )
+                                )}
+                            </span>
+
+                            <span>
+                                ${escapeHTML(
+                                    candidate.category
+                                )}
+                            </span>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="list-item-actions">
+
+                        <button
+                            type="button"
+                            class="icon-btn"
+                            data-action="edit-candidate"
+                            data-id="${escapeHTML(
+                                candidate.id
+                            )}"
+                            aria-label="Edit candidate"
+                        >
+
+                            <span class="material-symbols-rounded">
+                                edit
+                            </span>
+
+                        </button>
+
+
+                        <button
+                            type="button"
+                            class="icon-btn danger"
+                            data-action="delete-candidate"
+                            data-id="${escapeHTML(
+                                candidate.id
+                            )}"
+                            aria-label="Delete candidate"
+                        >
+
+                            <span class="material-symbols-rounded">
+                                delete
+                            </span>
+
+                        </button>
+
+                    </div>
+
+                </div>
+
+            `
+        )
+        .join("");
+
+
+list
+    .querySelectorAll(
+        "[data-action='edit-candidate']"
+    )
+    .forEach(
+        button => {
+
+            button.addEventListener(
+                "click",
+                () =>
+                    editCandidate(
+                        button.dataset.id
+                    )
+            );
+
+        }
+    );
+
+
+list
+    .querySelectorAll(
+        "[data-action='delete-candidate']"
+    )
+    .forEach(
+        button => {
+
+            button.addEventListener(
+                "click",
+                () =>
+                    deleteCandidate(
+                        button.dataset.id
+                    )
+            );
+
+        }
+    );
+```
+
+}
+
+/* ========================================================
+EDIT CANDIDATE
+======================================================== */
+
+function editCandidate(
+id
+) {
+
+```
+const candidate =
+    adminCache.candidates.find(
+        item =>
+            item.id === id
+    );
+
+
+if (!candidate) {
+    return;
+}
+
+
+$("candidateEditId").value =
+    candidate.id;
+
+$("candidateChest").value =
+    candidate.chest || "";
+
+$("candidateName").value =
+    candidate.name || "";
+
+$("candidateTeam").value =
+    candidate.teamId || "";
+
+$("candidateCategory").value =
+    candidate.category || "";
+
+
+$("candidateFormHeading")
+    .textContent =
+    "Edit Candidate";
+
+
+$("saveCandidateBtn").innerHTML =
+    `
+    <span class="material-symbols-rounded">
+        save
+    </span>
+    Save Changes
+    `;
+
+
+$("cancelCandidateEdit")
+    ?.classList.remove(
+        "hidden"
+    );
+
+
+switchSection(
+    "candidates"
+);
+
+
+window.scrollTo(
+    {
+        top: 0,
+        behavior: "smooth"
+    }
+);
+```
+
+}
+
+function resetCandidateForm() {
+
+```
+$("candidateForm")
+    ?.reset();
+
+
+$("candidateEditId").value =
+    "";
+
+
+$("candidateFormHeading")
+    .textContent =
+    "Add Candidate";
+
+
+$("saveCandidateBtn").innerHTML =
+    `
+    <span class="material-symbols-rounded">
+        person_add
+    </span>
+    Add Candidate
+    `;
+
+
+$("cancelCandidateEdit")
+    ?.classList.add(
+        "hidden"
+    );
+```
+
+}
+
+/* ========================================================
+DELETE CANDIDATE
+======================================================== */
+
+async function deleteCandidate(
+id
+) {
+
+```
+const candidate =
+    adminCache.candidates.find(
+        item =>
+            item.id === id
+    );
+
+
+if (!candidate) {
+    return;
+}
+
+
+const linkedResults =
+    adminCache.results.filter(
+        result =>
+            Array.isArray(
+                result.places
+            ) &&
+            result.places.some(
+                place =>
+                    place.candidateId ===
+                    id
+            )
+    );
+
+
+if (
+    linkedResults.length
+) {
+
+    showToast(
+        "This candidate has published results. Delete those results first.",
+        "error"
+    );
+
+    return;
+
+}
+
+
+const confirmed =
+    confirm(
+        `Delete candidate "${candidate.name}"?`
+    );
+
+
+if (!confirmed) {
+    return;
+}
+
+
+try {
+
+    await db
+        .collection(
+            CANDIDATES_COLLECTION
+        )
+        .doc(
+            id
+        )
+        .delete();
+
+
+    showToast(
+        "Candidate deleted."
+    );
+
+
+} catch (error) {
+
+    showToast(
+        firebaseErrorMessage(
+            error
+        ),
+        "error"
+    );
+
+}
+```
+
+}
+
+/* ========================================================
+PROGRAMME SELECT
+======================================================== */
+
+function populateProgrammeSelect() {
+
+```
+const select =
+    $("resultProgramme");
+
+
+if (!select) {
+    return;
+}
+
+
+const current =
+    select.value;
+
+
+const programmes =
+    [...adminCache.programmes]
+        .sort(
+            (a, b) =>
+                normalize(
+                    a.title
+                ).localeCompare(
+                    normalize(
+                        b.title
+                    )
+                )
+        );
+
+
+select.innerHTML =
+    `
+    <option value="">
+        Select Programme
+    </option>
+    ` +
+    programmes
+        .map(
+            programme => `
+
+                <option
+                    value="${escapeHTML(
+                        programme.id
+                    )}"
+                >
+
+                    ${escapeHTML(
+                        programme.title
+                    )}
+                    —
+                    ${escapeHTML(
+                        programme.category
+                    )}
+
+                </option>
+
+            `
+        )
+        .join("");
+
+
+if (
+    programmes.some(
+        programme =>
+            programme.id ===
+            current
+    )
+) {
+
+    select.value =
+        current;
+
+}
+```
+
+}
+
+/* ========================================================
+PROGRAMME FORM
+======================================================== */
+
+async function saveProgrammeForm(
+event
+) {
+
+```
+event.preventDefault();
+
+
+const editId =
+    safeString(
+        $("programmeEditId")?.value
+    );
+
+
+const title =
+    safeString(
+        $("programmeTitle")?.value
+    );
+
+
+const category =
+    safeString(
+        $("programmeCategory")?.value
+    );
+
+
+const venue =
+    safeString(
+        $("programmeVenue")?.value
+    );
+
+
+const time =
+    safeString(
+        $("programmeTime")?.value
+    );
+
+
+const status =
+    safeString(
+        $("programmeStatus")?.value
+    );
+
+
+const firstPoints =
+    positiveNumber(
+        $("programmeFirstPoints")?.value
+    );
+
+
+const secondPoints =
+    positiveNumber(
+        $("programmeSecondPoints")?.value
+    );
+
+
+const thirdPoints =
+    positiveNumber(
+        $("programmeThirdPoints")?.value
+    );
+
+
+if (
+    !title ||
+    !category
+) {
+
+    showToast(
+        "Programme title and category are required.",
+        "error"
+    );
+
+    return;
+
+}
+
+
+if (
+    firstPoints === null ||
+    secondPoints === null ||
+    thirdPoints === null
+) {
+
+    showToast(
+        "Programme points must be valid non-negative numbers.",
+        "error"
+    );
+
+    return;
+
+}
+
+
+if (
+    !VALID_CATEGORIES.includes(
+        category
+    )
+) {
+
+    showToast(
+        "Invalid programme category.",
+        "error"
+    );
+
+    return;
+
+}
+
+
+if (
+    !VALID_STATUSES.includes(
+        status
+    )
+) {
+
+    showToast(
+        "Invalid programme status.",
+        "error"
+    );
+
+    return;
+
+}
+
+
+const duplicate =
+    adminCache.programmes.find(
+        programme =>
+            normalize(
+                programme.title
+            ) ===
+            normalize(
+                title
+            ) &&
+            normalize(
+                programme.category
+            ) ===
+            normalize(
+                category
+            ) &&
+            programme.id !==
+            editId
+    );
+
+
+if (duplicate) {
+
+    showToast(
+        "A programme with this title and category already exists.",
+        "error"
+    );
+
+    return;
+
+}
+
+
+setLoading(
+    true,
+    editId
+        ? "Updating programme..."
+        : "Creating programme..."
+);
+
+
+try {
+
+    const data = {
+
+        title,
+
+        category,
+
+        venue,
+
+        time,
+
+        status,
+
+        points: {
+
+            first:
+                firstPoints,
+
+            second:
+                secondPoints,
+
+            third:
+                thirdPoints
+
+        },
+
+        updatedAt:
+            firebase.firestore.FieldValue
+                .serverTimestamp()
+
+    };
+
+
+    if (editId) {
+
+        await db
+            .collection(
+                PROGRAMMES_COLLECTION
+            )
+            .doc(
+                editId
+            )
+            .update(
+                data
+            );
+
+
+        showToast(
+            "Programme updated successfully."
+        );
+
+    } else {
+
+        data.createdAt =
+            firebase.firestore.FieldValue
+                .serverTimestamp();
+
+
+        await db
+            .collection(
+                PROGRAMMES_COLLECTION
+            )
+            .add(
+                data
+            );
+
+
+        showToast(
+            "Programme created successfully."
+        );
+
+    }
+
+
+    resetProgrammeForm();
+
+
+} catch (error) {
+
+    showToast(
+        firebaseErrorMessage(
+            error
+        ),
+        "error"
+    );
+
+} finally {
+
+    setLoading(
+        false
+    );
+
+}
+```
+
+}
+
+/* ========================================================
+RENDER PROGRAMMES
+======================================================== */
+
+function renderProgrammes() {
+
+```
+const list =
+    $("programmesList");
+
+
+if (!list) {
+    return;
+}
+
+
+const search =
+    normalize(
+        $("programmeAdminSearch")
+            ?.value
+    );
+
+
+let items =
+    [...adminCache.programmes];
+
+
+if (search) {
+
+    items =
+        items.filter(
+            programme =>
+                normalize(
+                    programme.title
+                ).includes(
+                    search
+                ) ||
+                normalize(
+                    programme.category
+                ).includes(
+                    search
+                ) ||
+                normalize(
+                    programme.venue
+                ).includes(
+                    search
+                )
+        );
+
+}
+
+
+items.sort(
+    (a, b) =>
+        normalize(
+            a.title
+        ).localeCompare(
+            normalize(
+                b.title
+            )
+        )
+);
+
+
+if (!items.length) {
+
+    list.innerHTML =
+        `
+        <div class="empty-state">
+            No programmes found.
+        </div>
+        `;
+
+    return;
+
+}
+
+
+list.innerHTML =
+    items
+        .map(
+            programme => {
+
+                const points =
+                    programme.points ||
+                    {};
+
+
+                return `
+
+                    <div class="admin-list-item">
+
+                        <div class="list-item-main">
+
+                            <div class="list-item-title">
+
+                                ${escapeHTML(
+                                    programme.title
+                                )}
+
+                            </div>
+
+
+                            <div class="list-item-meta">
+
+                                <span>
+                                    ${escapeHTML(
+                                        programme.category
+                                    )}
+                                </span>
+
+                                <span>
+                                    1st:
+                                    ${numberValue(
+                                        points.first
+                                    )}
+                                </span>
+
+                                <span>
+                                    2nd:
+                                    ${numberValue(
+                                        points.second
+                                    )}
+                                </span>
+
+                                <span>
+                                    3rd:
+                                    ${numberValue(
+                                        points.third
+                                    )}
+                                </span>
+
+                                <span>
+                                    ${escapeHTML(
+                                        programme.status ||
+                                        "Upcoming"
+                                    )}
+                                </span>
+
+                            </div>
+
+
+                            <div class="list-item-description">
+
+                                ${
+                                    programme.venue
+                                        ? `
+                                            Venue:
+                                            ${escapeHTML(
+                                                programme.venue
+                                            )}
+                                          `
+                                        : ""
+                                }
+
+                                ${
+                                    programme.time
+                                        ? `
+                                            ${
+                                                programme.venue
+                                                    ? " • "
+                                                    : ""
+                                            }
+                                            Time:
+                                            ${escapeHTML(
+                                                programme.time
+                                            )}
+                                          `
+                                        : ""
+                                }
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="list-item-actions">
+
+                            <button
+                                type="button"
+                                class="icon-btn"
+                                data-action="edit-programme"
+                                data-id="${escapeHTML(
+                                    programme.id
+                                )}"
+                                aria-label="Edit programme"
+                            >
+
+                                <span class="material-symbols-rounded">
+                                    edit
+                                </span>
+
+                            </button>
+
+
+                            <button
+                                type="button"
+                                class="icon-btn danger"
+                                data-action="delete-programme"
+                                data-id="${escapeHTML(
+                                    programme.id
+                                )}"
+                                aria-label="Delete programme"
+                            >
+
+                                <span class="material-symbols-rounded">
+                                    delete
+                                </span>
+
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                `;
+
+            }
+        )
+        .join("");
+
+
+list
+    .querySelectorAll(
+        "[data-action='edit-programme']"
+    )
+    .forEach(
+        button => {
+
+            button.addEventListener(
+                "click",
+                () =>
+                    editProgramme(
+                        button.dataset.id
+                    )
+            );
+
+        }
+    );
+
+
+list
+    .querySelectorAll(
+        "[data-action='delete-programme']"
+    )
+    .forEach(
+        button => {
+
+            button.addEventListener(
+                "click",
+                () =>
+                    deleteProgramme(
+                        button.dataset.id
+                    )
+            );
+
+        }
+    );
+```
+
+}
+
+/* ========================================================
+EDIT PROGRAMME
+======================================================== */
+
+function editProgramme(
+id
+) {
+
+```
+const programme =
+    adminCache.programmes.find(
+        item =>
+            item.id === id
+    );
+
+
+if (!programme) {
+    return;
+}
+
+
+const points =
+    programme.points ||
+    {};
+
+
+$("programmeEditId").value =
+    programme.id;
+
+$("programmeTitle").value =
+    programme.title || "";
+
+$("programmeCategory").value =
+    programme.category || "";
+
+$("programmeVenue").value =
+    programme.venue || "";
+
+$("programmeTime").value =
+    programme.time || "";
+
+$("programmeStatus").value =
+    programme.status ||
+    "Upcoming";
+
+$("programmeFirstPoints").value =
+    numberValue(
+        points.first
+    );
+
+$("programmeSecondPoints").value =
+    numberValue(
+        points.second
+    );
+
+$("programmeThirdPoints").value =
+    numberValue(
+        points.third
+    );
+
+
+$("programmeFormHeading")
+    .textContent =
+    "Edit Programme";
+
+
+$("saveProgrammeBtn").innerHTML =
+    `
+    <span class="material-symbols-rounded">
+        save
+    </span>
+    Save Changes
+    `;
+
+
+$("cancelProgrammeEdit")
+    ?.classList.remove(
+        "hidden"
+    );
+
+
+switchSection(
+    "programmes"
+);
+
+
+window.scrollTo(
+    {
+        top: 0,
+        behavior: "smooth"
+    }
+);
+```
+
+}
+
+function resetProgrammeForm() {
+
+```
+$("programmeForm")
+    ?.reset();
+
+
+$("programmeEditId").value =
+    "";
+
+
+$("programmeFirstPoints").value =
+    5;
+
+$("programmeSecondPoints").value =
+    3;
+
+$("programmeThirdPoints").value =
+    1;
+
+
+$("programmeStatus").value =
+    "Upcoming";
+
+
+$("programmeFormHeading")
+    .textContent =
+    "Add Programme";
+
+
+$("saveProgrammeBtn").innerHTML =
+    `
+    <span class="material-symbols-rounded">
+        add_circle
+    </span>
+    Add Programme
+    `;
+
+
+$("cancelProgrammeEdit")
+    ?.classList.add(
+        "hidden"
+    );
+```
+
+}
+
+/* ========================================================
+DELETE PROGRAMME
+======================================================== */
+
+async function deleteProgramme(
+id
+) {
+
+```
+const programme =
+    adminCache.programmes.find(
+        item =>
+            item.id === id
+    );
+
+
+if (!programme) {
+    return;
+}
+
+
+const linked =
+    adminCache.results.some(
+        result =>
+            result.programmeId ===
+            id
+    );
+
+
+if (linked) {
+
+    showToast(
+        "This programme has published results. Delete those results first.",
+        "error"
+    );
+
+    return;
+
+}
+
+
+const confirmed =
+    confirm(
+        `Delete programme "${programme.title}"?`
+    );
+
+
+if (!confirmed) {
+    return;
+}
+
+
+try {
+
+    await db
+        .collection(
+            PROGRAMMES_COLLECTION
+        )
+        .doc(
+            id
+        )
+        .delete();
+
+
+    showToast(
+        "Programme deleted."
+    );
+
+
+} catch (error) {
+
+    showToast(
+        firebaseErrorMessage(
+            error
+        ),
+        "error"
+    );
+
+}
+```
+
+}
+
+/* ========================================================
+RESULT POINTS
+======================================================== */
+
+function getProgrammePoints(
+programme
+) {
+
+```
+const points =
+    programme?.points ||
+    {};
+
+
+return {
+
+    first:
+        numberValue(
+            points.first
+        ),
+
+    second:
+        numberValue(
+            points.second
+        ),
+
+    third:
+        numberValue(
+            points.third
+        )
+
+};
+```
+
+}
+
+function updateResultPlacePoints() {
+
+```
+const programmeId =
+    safeString(
+        $("resultProgramme")?.value
+    );
+
+
+const programme =
+    adminCache.programmes.find(
+        item =>
+            item.id ===
+            programmeId
+    );
+
+
+if (!programme) {
+
+    [
+        "1",
+        "2",
+        "3"
+    ].forEach(
+        place => {
+
+            const input =
+                $(
+                    `result${place}Points`
+                );
+
+
+            if (input) {
+
+                input.value =
+                    "";
+
+            }
+
+        }
+    );
+
+    return;
+
+}
+
+
+const points =
+    getProgrammePoints(
+        programme
+    );
+
+
+const map = {
+
+    "1":
+        points.first,
+
+    "2":
+        points.second,
+
+    "3":
+        points.third
+
+};
+
+
+Object.keys(
+    map
+).forEach(
+    place => {
+
+        const input =
+            $(
+                `result${place}Points`
+            );
+
+
+        if (input) {
+
+            input.value =
+                map[place];
+
+        }
+
+    }
+);
+```
+
+}
+
+/* ========================================================
+CANDIDATE RESOLUTION
+======================================================== */
+
+function findCandidateByChest(
+chest
+) {
+
+```
+const target =
+    normalize(
+        chest
+    );
+
+
+if (!target) {
+    return null;
+}
+
+
+return adminCache.candidates.find(
+    candidate =>
+        normalize(
+            candidate.chest
+        ) ===
+        target
+) || null;
+```
+
+}
+
+/* ========================================================
+RESULT PLACE AUTO FILL
+======================================================== */
+
+function setupChestInput(
+place
+) {
+
+```
+const chestInput =
+    $(
+        `result${place}Chest`
+    );
+
+
+if (!chestInput) {
+    return;
+}
+
+
+chestInput.addEventListener(
+    "input",
+    () => {
+
+        const candidate =
+            findCandidateByChest(
+                chestInput.value
+            );
+
+
+        fillResultCandidate(
+            place,
+            candidate
+        );
+
+    }
+);
+
+
+chestInput.addEventListener(
+    "blur",
+    () => {
+
+        const candidate =
+            findCandidateByChest(
+                chestInput.value
+            );
+
+
+        fillResultCandidate(
+            place,
+            candidate
+        );
+
+    }
+);
+```
+
+}
+
+function fillResultCandidate(
+place,
+candidate
+) {
+
+```
+const nameInput =
+    $(
+        `result${place}Name`
+    );
+
+const teamInput =
+    $(
+        `result${place}Team`
+    );
+
+
+if (!nameInput || !teamInput) {
+    return;
+}
+
+
+if (!candidate) {
+
+    nameInput.value =
+        "";
+
+    teamInput.value =
+        "";
+
+
+    if (
+        safeString(
+            $(
+                `result${place}Chest`
+            )?.value
+        )
+    ) {
+
+        nameInput.placeholder =
+            "Candidate not found";
+
+        teamInput.placeholder =
+            "Candidate not found";
+
+    } else {
+
+        nameInput.placeholder =
+            "Auto-filled";
+
+        teamInput.placeholder =
+            "Auto-filled";
+
+    }
+
+
+    return;
+
+}
+
+
+nameInput.value =
+    candidate.name || "";
+
+
+teamInput.value =
+    teamName(
+        candidate.teamId
+    ) || "";
+
+
+nameInput.placeholder =
+    "Auto-filled";
+
+teamInput.placeholder =
+    "Auto-filled";
+```
+
+}
+
+/* ========================================================
+RESULT DATA
+======================================================== */
+
+function readResultPlace(
+place
+) {
+
+```
+const chest =
+    safeString(
+        $(
+            `result${place}Chest`
+        )?.value
+    );
+
+
+if (!chest) {
+
+    return null;
+
+}
+
+
+const candidate =
+    findCandidateByChest(
+        chest
+    );
+
+
+if (!candidate) {
+
+    throw new Error(
+        `Chest number "${chest}" was not found.`
+    );
+
+}
+
+
+const grade =
+    safeString(
+        $(
+            `result${place}Grade`
+        )?.value
+    );
+
+
+if (
+    !GRADE_POINTS.hasOwnProperty(
+        grade
+    )
+) {
+
+    throw new Error(
+        `Select A, B or C grade for ${place === "1" ? "1st" : place === "2" ? "2nd" : "3rd"} place.`
+    );
+
+}
+
+
+const points =
+    positiveNumber(
+        $(
+            `result${place}Points`
+        )?.value
+    );
+
+
+if (points === null) {
+
+    throw new Error(
+        `Invalid points for place ${place}.`
+    );
+
+}
+
+
+return {
+
+    place:
+        Number(place),
+
+    candidateId:
+        candidate.id,
+
+    chest:
+        candidate.chest,
+
+    name:
+        candidate.name,
+
+    teamId:
+        candidate.teamId,
+
+    grade,
+
+    gradePoints:
+        GRADE_POINTS[
+            grade
+        ],
+
+    placePoints:
+        points
+
+};
+```
+
+}
+
+/* ========================================================
+SAVE RESULT
+======================================================== */
+
+async function saveResult(
+event
+) {
+
+```
+event.preventDefault();
+
+
+const programmeId =
+    safeString(
+        $("resultProgramme")?.value
+    );
+
+
+const eventType =
+    safeString(
+        $("resultEventType")?.value
+    );
+
+
+if (!programmeId) {
+
+    showToast(
+        "Select a programme.",
+        "error"
+    );
+
+    return;
+
+}
+
+
+if (
+    !VALID_EVENT_TYPES.includes(
+        eventType
+    )
+) {
+
+    showToast(
+        "Select a valid event type.",
+        "error"
+    );
+
+    return;
+
+}
+
+
+const programme =
+    adminCache.programmes.find(
+        item =>
+            item.id ===
+            programmeId
+    );
+
+
+if (!programme) {
+
+    showToast(
+        "Selected programme was not found.",
+        "error"
+    );
+
+    return;
+
+}
+
+
+let places = [];
+
+
+try {
+
+    [
+        "1",
+        "2",
+        "3"
+    ].forEach(
+        place => {
+
+            const data =
+                readResultPlace(
+                    place
+                );
+
+
+            if (data) {
+
+                places.push(
+                    data
+                );
+
+            }
+
+        }
+    );
+
+} catch (error) {
+
+    showToast(
+        error.message,
+        "error"
+    );
+
+    return;
+
+}
+
+
+if (!places.length) {
+
+    showToast(
+        "Enter at least one result.",
+        "error"
+    );
+
+    return;
+
+}
+
+
+const candidateIds =
+    places.map(
+        place =>
+            place.candidateId
+    );
+
+
+if (
+    new Set(
+        candidateIds
+    ).size !==
+    candidateIds.length
+) {
+
+    showToast(
+        "The same candidate cannot occupy multiple places.",
+        "error"
+    );
+
+    return;
+
+}
+
+
+/*
+ * Category integrity:
+ *
+ * Individual events require the candidate
+ * category to match the programme category,
+ * unless the programme category is General/Open.
+ *
+ * Group events are also tied to the programme
+ * category, but the points are team-only.
+ */
+
+const programmeCategory =
+    normalize(
+        programme.category
+    );
+
+
+if (
+    programmeCategory !==
+        "general" &&
+    programmeCategory !==
+        "open"
+) {
+
+    const invalid =
+        places.find(
+            place => {
+
+                const candidate =
+                    adminCache.candidates.find(
+                        item =>
+                            item.id ===
+                            place.candidateId
+                    );
+
+
+                return (
+                    candidate &&
+                    normalize(
+                        candidate.category
+                    ) !==
+                    programmeCategory
+                );
+
+            }
+        );
+
+
+    if (invalid) {
+
+        showToast(
+            "Candidate category does not match the programme category.",
+            "error"
+        );
+
+        return;
+
+    }
+
+}
+
+
+const duplicateResult =
+    adminCache.results.find(
+        result =>
+            result.programmeId ===
+            programmeId
+    );
+
+
+if (duplicateResult) {
+
+    showToast(
+        "This programme already has a published result.",
+        "error"
+    );
+
+    return;
+
+}
+
+
+/*
+ * IMPORTANT:
+ *
+ * For group events, candidate information is
+ * retained for identification, but candidate
+ * points are NEVER calculated from this result.
+ *
+ * Team receives:
+ * placePoints + gradePoints
+ *
+ * Individual candidate receives:
+ * placePoints + gradePoints
+ */
+
+const resultData = {
+
+    programmeId,
+
+    programmeTitle:
+        programme.title,
+
+    programmeCategory:
+        programme.category,
+
+    eventType,
+
+    places,
+
+    createdAt:
+        firebase.firestore.FieldValue
+            .serverTimestamp(),
+
+    updatedAt:
+        firebase.firestore.FieldValue
+            .serverTimestamp()
+
+};
+
+
+setLoading(
+    true,
+    "Publishing result..."
+);
+
+
+try {
+
+    await db
+        .collection(
+            RESULTS_COLLECTION
+        )
+        .add(
+            resultData
+        );
+
+
+    showToast(
+        "Result published successfully."
+    );
+
+
+    resetResultForm();
+
+
+} catch (error) {
+
+    showToast(
+        firebaseErrorMessage(
+            error
+        ),
+        "error"
+    );
+
+} finally {
+
+    setLoading(
+        false
+    );
+
+}
+```
+
+}
+
+/* ========================================================
+RESULT LIST
+======================================================== */
+
+function renderResults() {
+
+```
+const list =
+    $("resultsList");
+
+
+if (!list) {
+    return;
+}
+
+
+const items =
+    [...adminCache.results]
+        .sort(
+            (a, b) =>
+                numberValue(
+                    b.createdAtMillis
+                ) -
+                numberValue(
+                    a.createdAtMillis
+                )
+        );
+
+
+if (!items.length) {
+
+    list.innerHTML =
+        `
+        <div class="empty-state">
+            No results published yet.
+        </div>
+        `;
+
+    return;
+
+}
+
+
+list.innerHTML =
+    items
+        .map(
+            result => {
+
+                const places =
+                    Array.isArray(
+                        result.places
+                    )
+                        ? result.places
+                        : [];
+
+
+                return `
+
+                    <div class="admin-list-item">
+
+                        <div class="list-item-main">
+
+                            <div class="list-item-title">
+
+                                ${escapeHTML(
+                                    result.programmeTitle
+                                )}
+
+                            </div>
+
+
+                            <div class="list-item-meta">
+
+                                <span>
+                                    ${escapeHTML(
+                                        result.programmeCategory ||
+                                        ""
+                                    )}
+                                </span>
+
+                                <span>
+                                    ${
+                                        result.eventType ===
+                                        "group"
+                                            ? "Group"
+                                            : "Individual"
+                                    }
+                                </span>
+
+                            </div>
+
+
+                            <div class="list-item-description">
+
+                                ${places
+                                    .map(
+                                        place => `
+
+                                            <div>
+                                                <strong>
+                                                    ${place.place}.
+                                                </strong>
+
+                                                ${escapeHTML(
+                                                    place.name
+                                                )}
+
+                                                —
+                                                ${escapeHTML(
+                                                    place.chest
+                                                )}
+
+                                                —
+                                                ${escapeHTML(
+                                                    teamName(
+                                                        place.teamId
+                                                    )
+                                                )}
+
+                                                —
+                                                ${escapeHTML(
+                                                    place.grade
+                                                )}
+
+                                                —
+                                                ${numberValue(
+                                                    place.placePoints
+                                                )}
+                                                + 
+                                                ${numberValue(
+                                                    place.gradePoints
+                                                )}
+                                            </div>
+
+                                        `
+                                    )
+                                    .join("")}
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="list-item-actions">
+
+                            <button
+                                type="button"
+                                class="icon-btn danger"
+                                data-action="delete-result"
+                                data-id="${escapeHTML(
+                                    result.id
+                                )}"
+                                aria-label="Delete result"
+                            >
+
+                                <span class="material-symbols-rounded">
+                                    delete
+                                </span>
+
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                `;
+
+            }
+        )
+        .join("");
+
+
+list
+    .querySelectorAll(
+        "[data-action='delete-result']"
+    )
+    .forEach(
+        button => {
+
+            button.addEventListener(
+                "click",
+                () =>
+                    deleteResult(
+                        button.dataset.id
+                    )
+            );
+
+        }
+    );
+```
+
+}
+
+/* ========================================================
+DELETE RESULT
+======================================================== */
+
+async function deleteResult(
+id
+) {
+
+```
+const confirmed =
+    confirm(
+        "Delete this published result?"
+    );
+
+
+if (!confirmed) {
+    return;
+}
+
+
+try {
+
+    await db
+        .collection(
+            RESULTS_COLLECTION
+        )
+        .doc(
+            id
+        )
+        .delete();
+
+
+    showToast(
+        "Result deleted."
+    );
+
+
+} catch (error) {
+
+    showToast(
+        firebaseErrorMessage(
+            error
+        ),
+        "error"
+    );
+
+}
+```
+
+}
+
+/* ========================================================
+TEAM SCORING
+======================================================== */
+
+function calculateResultPoints(
+place
+) {
+
+```
+return (
+    numberValue(
+        place.placePoints
+    ) +
+    numberValue(
+        place.gradePoints
+    )
+);
+```
+
+}
+
+function rebuildTeamPoints() {
+
+```
+if (
+    adminCache.teams.length !== 3
+) {
+
+    return;
+
+}
+
+
+const totals =
+    {};
+
+
+adminCache.teams.forEach(
+    team => {
+
+        totals[
+            team.id
+        ] = 0;
+
+    }
+);
+
+
+adminCache.results.forEach(
+    result => {
+
+        const places =
+            Array.isArray(
+                result.places
+            )
+                ? result.places
+                : [];
+
+
+        places.forEach(
+            place => {
+
+                if (
+                    totals.hasOwnProperty(
+                        place.teamId
+                    )
+                ) {
+
+                    /*
+                     * BOTH individual and group
+                     * results contribute to team.
+                     */
+
+                    totals[
+                        place.teamId
+                    ] +=
+                        calculateResultPoints(
+                            place
+                        );
+
+                }
+
+            }
+        );
+
+    }
+);
+
+
+/*
+ * Update local team totals only.
+ * Do NOT write them continuously to Firestore.
+ *
+ * This prevents unnecessary writes whenever
+ * a snapshot arrives.
+ */
+
+adminCache.teams =
+    adminCache.teams.map(
+        team => ({
+
+            ...team,
+
+            points:
+                totals[
+                    team.id
+                ] || 0
+
+        })
+    );
+
+
+renderDashboard();
+```
+
+}
+
+/* ========================================================
+CANDIDATE TOTAL
+======================================================== */
+
+function calculateCandidateTotal(
+candidateId
+) {
+
+```
+let total = 0;
+
+
+adminCache.results.forEach(
+    result => {
+
+        /*
+         * GROUP RESULT:
+         * absolutely NO candidate points.
+         */
+
+        if (
+            result.eventType ===
+            "group"
+        ) {
+
+            return;
+
+        }
+
+
+        const places =
+            Array.isArray(
+                result.places
+            )
+                ? result.places
+                : [];
+
+
+        places.forEach(
+            place => {
+
+                if (
+                    place.candidateId ===
+                    candidateId
+                ) {
+
+                    total +=
+                        calculateResultPoints(
+                            place
+                        );
+
+                }
+
+            }
+        );
+
+    }
+);
+
+
+return total;
+```
+
+}
+
+/* ========================================================
+BACKUP DATA
+======================================================== */
+
+function getBackupData() {
+
+```
+return {
+
+    application:
+        "Sira Dars Fest",
+
+    version:
+        2,
+
+    exportedAt:
+        new Date()
+            .toISOString(),
+
+    teams:
+        adminCache.teams,
+
+    candidates:
+        adminCache.candidates,
+
+    programmes:
+        adminCache.programmes,
+
+    results:
+        adminCache.results,
+
+    updates:
+        adminCache.updates
+
+};
+```
+
+}
+
+/* ========================================================
+JSON EXPORT
+======================================================== */
+
+function exportJSON() {
+
+```
+try {
+
+    const data =
+        getBackupData();
+
+
+    const json =
+        JSON.stringify(
+            data,
+            null,
+            2
+        );
+
+
+    const blob =
+        new Blob(
+            [
+                json
+            ],
+            {
+                type:
+                    "application/json"
+            }
+        );
+
+
+    const url =
+        URL.createObjectURL(
+            blob
+        );
+
+
+    const link =
+        document.createElement(
+            "a"
+        );
+
+
+    const date =
+        new Date()
+            .toISOString()
+            .slice(
+                0,
+                10
+            );
+
+
+    link.href =
+        url;
+
+    link.download =
+        `sira-dars-fest-backup-${date}.json`;
+
+
+    document.body.appendChild(
+        link
+    );
+
+    link.click();
+
+    link.remove();
+
+
+    URL.revokeObjectURL(
+        url
+    );
+
+
+    showToast(
+        "JSON backup exported."
+    );
+
+
+} catch (error) {
+
+    console.error(
+        error
+    );
+
+    showToast(
+        "JSON export failed.",
+        "error"
+    );
+
+}
+```
+
+}
+
+/* ========================================================
+EXCEL EXPORT
+======================================================== */
+
+function exportExcel() {
+
+```
+if (
+    typeof XLSX ===
+    "undefined"
+) {
+
+    showToast(
+        "Excel library is not available.",
+        "error"
+    );
+
+    return;
+
+}
+
+
+try {
+
+    const workbook =
+        XLSX.utils.book_new();
+
+
+    /* -----------------------------------------------
+       TEAMS
+    ----------------------------------------------- */
+
+    const teamsRows =
+        adminCache.teams.map(
+            team => ({
+
+                "Team":
+                    team.name,
+
+                "Points":
+                    numberValue(
+                        team.points
+                    )
+
+            })
+        );
+
+
+    const teamsSheet =
+        XLSX.utils.json_to_sheet(
+            teamsRows
+        );
+
+
+    XLSX.utils.book_append_sheet(
+        workbook,
+        teamsSheet,
+        "Teams"
+    );
+
+
+    /* -----------------------------------------------
+       CANDIDATES
+    ----------------------------------------------- */
+
+    const candidateRows =
+        adminCache.candidates.map(
+            candidate => ({
+
+                "Chest Number":
+                    candidate.chest,
+
+                "Name":
+                    candidate.name,
+
+                "Team":
+                    teamName(
+                        candidate.teamId
+                    ),
+
+                "Category":
+                    candidate.category,
+
+                "Individual Points":
+                    calculateCandidateTotal(
+                        candidate.id
+                    )
+
+            })
+        );
+
+
+    const candidateSheet =
+        XLSX.utils.json_to_sheet(
+            candidateRows
+        );
+
+
+    XLSX.utils.book_append_sheet(
+        workbook,
+        candidateSheet,
+        "Candidates"
+    );
+
+
+    /* -----------------------------------------------
+       PROGRAMMES
+    ----------------------------------------------- */
+
+    const programmeRows =
+        adminCache.programmes.map(
+            programme => {
+
+                const points =
+                    programme.points ||
+                    {};
+
+
+                return {
+
+                    "Programme ID":
+                        programme.id,
+
+                    "Title":
+                        programme.title,
+
+                    "Category":
+                        programme.category,
+
+                    "Venue":
+                        programme.venue || "",
+
+                    "Time":
+                        programme.time || "",
+
+                    "Status":
+                        programme.status || "",
+
+                    "1st Points":
+                        numberValue(
+                            points.first
+                        ),
+
+                    "2nd Points":
+                        numberValue(
+                            points.second
+                        ),
+
+                    "3rd Points":
+                        numberValue(
+                            points.third
+                        )
+
+                };
+
+            }
+        );
+
+
+    const programmeSheet =
+        XLSX.utils.json_to_sheet(
+            programmeRows
+        );
+
+
+    XLSX.utils.book_append_sheet(
+        workbook,
+        programmeSheet,
+        "Programmes"
+    );
+
+
+    /* -----------------------------------------------
+       RESULTS
+    ----------------------------------------------- */
+
+    const resultRows = [];
+
+
+    adminCache.results.forEach(
+        result => {
+
+            const places =
+                Array.isArray(
+                    result.places
+                )
+                    ? result.places
+                    : [];
+
+
+            places.forEach(
+                place => {
+
+                    resultRows.push({
+
+                        "Programme ID":
+                            result.programmeId,
+
+                        "Programme":
+                            result.programmeTitle,
+
+                        "Category":
+                            result.programmeCategory,
+
+                        "Event Type":
+                            result.eventType,
+
+                        "Place":
+                            place.place,
+
+                        "Chest Number":
+                            place.chest,
+
+                        "Candidate":
+                            place.name,
+
+                        "Team":
+                            teamName(
+                                place.teamId
+                            ),
+
+                        "Grade":
+                            place.grade,
+
+                        "Grade Points":
+                            numberValue(
+                                place.gradePoints
+                            ),
+
+                        "Place Points":
+                            numberValue(
+                                place.placePoints
+                            ),
+
+                        "Total Result Points":
+                            calculateResultPoints(
+                                place
+                            ),
+
+                        "Candidate Points Added":
+                            result.eventType ===
+                            "group"
+                                ? 0
+                                : calculateResultPoints(
+                                    place
+                                ),
+
+                        "Team Points Added":
+                            calculateResultPoints(
+                                place
+                            )
+
+                    });
+
+                }
+            );
+
+        }
+    );
+
+
+    const resultSheet =
+        XLSX.utils.json_to_sheet(
+            resultRows
+        );
+
+
+    XLSX.utils.book_append_sheet(
+        workbook,
+        resultSheet,
+        "Results"
+    );
+
+
+    /* -----------------------------------------------
+       UPDATES
+    ----------------------------------------------- */
+
+    const updateRows =
+        adminCache.updates.map(
+            update => ({
+
+                "Title":
+                    update.title,
+
+                "Description":
+                    update.description,
+
+                "Type":
+                    update.type,
+
+                "Display Time":
+                    update.displayTime,
+
+                "Important":
+                    update.important
+                        ? "Yes"
+                        : "No"
+
+            })
+        );
+
+
+    const updateSheet =
+        XLSX.utils.json_to_sheet(
+            updateRows
+        );
+
+
+    XLSX.utils.book_append_sheet(
+        workbook,
+        updateSheet,
+        "Updates"
+    );
+
+
+    const date =
+        new Date()
+            .toISOString()
+            .slice(
+                0,
+                10
+            );
+
+
+    XLSX.writeFile(
+        workbook,
+        `sira-dars-fest-${date}.xlsx`
+    );
+
+
+    showToast(
+        "Excel file exported successfully."
+    );
+
+
+} catch (error) {
+
+    console.error(
+        "Excel export error:",
+        error
+    );
+
+
+    showToast(
+        "Excel export failed.",
+        "error"
+    );
+
+}
+```
+
+}
+
+/* ========================================================
+JSON RESTORE
+======================================================== */
+
+async function restoreJSON(
+file
+) {
+
+```
+if (!file) {
+
+    showToast(
+        "Please select a JSON backup file.",
+        "error"
+    );
+
+    return;
+
+}
+
+
+let data;
+
+
+try {
+
+    const text =
+        await file.text();
+
+
+    data =
+        JSON.parse(
+            text
+        );
+
+} catch (error) {
+
+    showToast(
+        "The selected file is not valid JSON.",
+        "error"
+    );
+
+    return;
+
+}
+
+
+if (
+    !data ||
+    typeof data !==
+        "object"
+) {
+
+    showToast(
+        "Invalid backup structure.",
+        "error"
+    );
+
+    return;
+
+}
+
+
+const teams =
+    Array.isArray(
+        data.teams
+    )
+        ? data.teams
+        : [];
+
+const candidates =
+    Array.isArray(
+        data.candidates
+    )
+        ? data.candidates
+        : [];
+
+const programmes =
+    Array.isArray(
+        data.programmes
+    )
+        ? data.programmes
+        : [];
+
+const results =
+    Array.isArray(
+        data.results
+    )
+        ? data.results
+        : [];
+
+const updates =
+    Array.isArray(
+        data.updates
+    )
+        ? data.updates
+        : [];
+
+
+if (
+    teams.length !== 3
+) {
+
+    showToast(
+        "Backup must contain exactly three teams.",
+        "error"
+    );
+
+    return;
+
+}
+
+
+const confirmed =
+    confirm(
+        "Restore this backup? Existing teams, candidates, programmes, results and updates will be replaced."
+    );
+
+
+if (!confirmed) {
+    return;
+}
+
+
+setLoading(
+    true,
+    "Restoring backup..."
+);
+
+
+try {
+
+    /*
+     * Clear existing collections first.
+     */
+
+    await clearCollection(
+        TEAMS_COLLECTION
+    );
+
+    await clearCollection(
+        CANDIDATES_COLLECTION
+    );
+
+    await clearCollection(
+        PROGRAMMES_COLLECTION
+    );
+
+    await clearCollection(
+        RESULTS_COLLECTION
+    );
+
+    await clearCollection(
+        UPDATES_COLLECTION
+    );
+
+
+    /*
+     * Restore using generated/existing IDs.
+     */
+
+    await restoreCollection(
+        TEAMS_COLLECTION,
+        teams
+    );
+
+    await restoreCollection(
+        CANDIDATES_COLLECTION,
+        candidates
+    );
+
+    await restoreCollection(
+        PROGRAMMES_COLLECTION,
+        programmes
+    );
+
+    await restoreCollection(
+        RESULTS_COLLECTION,
+        results
+    );
+
+    await restoreCollection(
+        UPDATES_COLLECTION,
+        updates
+    );
+
+
+    showToast(
+        "Backup restored successfully."
+    );
+
+
+} catch (error) {
+
+    showToast(
+        firebaseErrorMessage(
+            error
+        ),
+        "error"
+    );
+
+} finally {
+
+    setLoading(
+        false
+    );
+
+}
+```
+
+}
+
+/* ========================================================
+CLEAR COLLECTION
+======================================================== */
+
+async function clearCollection(
+collectionName
+) {
+
+```
+const snapshot =
+    await db
+        .collection(
+            collectionName
+        )
+        .get();
+
+
+if (
+    snapshot.empty
+) {
+
+    return;
+
+}
+
+
+const docs =
+    snapshot.docs;
+
+
+for (
+    let start = 0;
+    start < docs.length;
+    start += 400
+) {
+
+    const batch =
+        db.batch();
+
+
+    const chunk =
+        docs.slice(
+            start,
+            start + 400
+        );
+
+
+    chunk.forEach(
+        doc => {
+
+            batch.delete(
+                doc.ref
+            );
+
+        }
+    );
+
+
+    await batch.commit();
+
+}
+```
+
+}
+
+/* ========================================================
+RESTORE COLLECTION
+======================================================== */
+
+async function restoreCollection(
+collectionName,
+items
+) {
+
+```
+if (!items.length) {
+    return;
+}
+
+
+for (
+    let start = 0;
+    start < items.length;
+    start += 400
+) {
+
+    const batch =
+        db.batch();
+
+
+    const chunk =
+        items.slice(
+            start,
+            start + 400
+        );
+
+
+    chunk.forEach(
+        item => {
+
+            const id =
+                safeString(
+                    item.id
+                ) ||
+                generateId(
+                    collectionName
+                );
+
+
+            const data =
+                {
+                    ...item
+                };
+
+
+            delete data.id;
+
+
+            batch.set(
+                db
+                    .collection(
+                        collectionName
+                    )
+                    .doc(
+                        id
+                    ),
+                data
+            );
+
+        }
+    );
+
+
+    await batch.commit();
+
+}
+```
+
+}
+
+/* ========================================================
+BACKUP EVENTS
+======================================================== */
+
+function setupBackup() {
+
+```
+$("exportJsonBtn")
+    ?.addEventListener(
+        "click",
+        exportJSON
+    );
+
+
+$("exportExcelBtn")
+    ?.addEventListener(
+        "click",
+        exportExcel
+    );
+
+
+$("importJsonFile")
+    ?.addEventListener(
+        "change",
+        event => {
+
+            selectedBackupFile =
+                event.target.files?.[0] ||
+                null;
+
+
+            const label =
+                $("selectedBackupFile");
+
+
+            const button =
+                $("importJsonBtn");
+
+
+            if (label) {
+
+                label.textContent =
+                    selectedBackupFile
+                        ? selectedBackupFile.name
+                        : "No file selected";
+
+            }
+
+
+            if (button) {
+
+                button.disabled =
+                    !selectedBackupFile;
+
+            }
+
+        }
+    );
+
+
+$("importJsonBtn")
+    ?.addEventListener(
+        "click",
+        () =>
+            restoreJSON(
+                selectedBackupFile
+            )
+    );
+
+
+$("resetAllDataBtn")
+    ?.addEventListener(
+        "click",
+        resetAllData
+    );
+```
+
+}
+
+/* ========================================================
+SEARCH
+======================================================== */
+
+function setupSearch() {
+
+```
+$("candidateAdminSearch")
+    ?.addEventListener(
+        "input",
+        renderCandidates
+    );
+
+
+$("programmeAdminSearch")
+    ?.addEventListener(
+        "input",
+        renderProgrammes
+    );
+```
+
+}
+
+/* ========================================================
+FORMS
+======================================================== */
+
+function setupForms() {
+
+```
+$("teamsForm")
+    ?.addEventListener(
+        "submit",
+        saveTeams
+    );
+
+
+$("updateForm")
+    ?.addEventListener(
+        "submit",
+        saveUpdate
+    );
+
+
+$("candidateForm")
+    ?.addEventListener(
+        "submit",
+        saveCandidateForm
+    );
+
+
+$("programmeForm")
+    ?.addEventListener(
+        "submit",
+        saveProgrammeForm
+    );
+
+
+$("resultForm")
+    ?.addEventListener(
+        "submit",
+        saveResult
+    );
+
+
+$("cancelUpdateEdit")
+    ?.addEventListener(
+        "click",
+        resetUpdateForm
+    );
+
+
+$("cancelCandidateEdit")
+    ?.addEventListener(
+        "click",
+        resetCandidateForm
+    );
+
+
+$("cancelProgrammeEdit")
+    ?.addEventListener(
+        "click",
+        resetProgrammeForm
+    );
+
+
+$("resultProgramme")
+    ?.addEventListener(
+        "change",
+        updateResultPlacePoints
+    );
+
+
+[
+    "1",
+    "2",
+    "3"
+].forEach(
+    place =>
+        setupChestInput(
+            place
+        )
+);
+```
+
+}
+
+/* ========================================================
+LAST UPDATED
+======================================================== */
+
+function updateLastUpdated() {
+
+```
+const element =
+    $("adminLastUpdated");
+
+
+if (!element) {
+    return;
+}
+
+
+element.textContent =
+    new Date()
+        .toLocaleTimeString(
+            [],
+            {
+                hour:
+                    "2-digit",
+
+                minute:
+                    "2-digit",
+
+                second:
+                    "2-digit"
+            }
+        );
+```
+
+}
+
+/* ========================================================
+RESET RESULT FORM
+======================================================== */
+
+function resetResultForm() {
+
+```
+$("resultForm")
+    ?.reset();
+
+
+[
+    "1",
+    "2",
+    "3"
+].forEach(
+    place => {
+
+        const name =
+            $(
+                `result${place}Name`
+            );
+
+        const team =
+            $(
+                `result${place}Team`
+            );
+
+        const points =
+            $(
+                `result${place}Points`
+            );
+
+
+        if (name) {
+
+            name.value =
+                "";
+
+        }
+
+
+        if (team) {
+
+            team.value =
+                "";
+
+        }
+
+
+        if (points) {
+
+            points.value =
+                "";
+
+        }
+
+    }
+);
+```
+
+}
+
+/* ========================================================
+RESET ALL DATA
+======================================================== */
+
+async function resetAllData() {
+
+```
+const firstConfirm =
+    confirm(
+        "This will permanently delete all fest teams, candidates, programmes, results and updates. Continue?"
+    );
+
+
+if (!firstConfirm) {
+    return;
+}
+
+
+const secondConfirm =
+    confirm(
+        "Final confirmation: delete ALL fest data?"
+    );
+
+
+if (!secondConfirm) {
+    return;
+}
+
+
+setLoading(
+    true,
+    "Resetting fest data..."
+);
+
+
+try {
+
+    await clearCollection(
+        TEAMS_COLLECTION
+    );
+
+    await clearCollection(
+        CANDIDATES_COLLECTION
+    );
+
+    await clearCollection(
+        PROGRAMMES_COLLECTION
+    );
+
+    await clearCollection(
+        RESULTS_COLLECTION
+    );
+
+    await clearCollection(
+        UPDATES_COLLECTION
+    );
+
+
+    /*
+     * Recreate exactly three teams.
+     */
+
+    const batch =
+        db.batch();
+
+
+    DEFAULT_TEAMS.forEach(
+        team => {
+
+            const ref =
+                db
+                    .collection(
+                        TEAMS_COLLECTION
+                    )
+                    .doc(
+                        team.id
+                    );
+
+
+            batch.set(
+                ref,
+                {
+
+                    name:
+                        team.name,
+
+                    points:
+                        0,
+
+                    createdAt:
+                        firebase.firestore
+                            .FieldValue
+                            .serverTimestamp(),
+
+                    updatedAt:
+                        firebase.firestore
+                            .FieldValue
+                            .serverTimestamp()
+
+                }
+            );
+
+        }
+    );
+
+
+    await batch.commit();
+
+
+    showToast(
+        "All fest data has been reset."
+    );
+
+
+} catch (error) {
+
+    showToast(
+        firebaseErrorMessage(
+            error
+        ),
+        "error"
+    );
+
+} finally {
+
+    setLoading(
+        false
+    );
+
+}
+```
+
+}
+
+/* ========================================================
+INITIAL FALLBACK TEAM CREATION
+======================================================== */
+
+async function ensureTeamsExist() {
+
+```
+const snapshot =
+    await db
+        .collection(
+            TEAMS_COLLECTION
+        )
+        .get();
+
+
+if (
+    snapshot.size === 3
+) {
+
+    return;
+
+}
+
+
+/*
+ * Only create defaults when the collection
+ * is empty.
+ *
+ * Do not overwrite existing teams automatically.
+ */
+
+if (
+    snapshot.empty
+) {
+
+    const batch =
+        db.batch();
+
+
+    DEFAULT_TEAMS.forEach(
+        team => {
+
+            batch.set(
+
+                db
+                    .collection(
+                        TEAMS_COLLECTION
+                    )
+                    .doc(
+                        team.id
+                    ),
+
+                {
+
+                    name:
+                        team.name,
+
+                    points:
+                        0,
+
+                    createdAt:
+                        firebase.firestore
+                            .FieldValue
+                            .serverTimestamp(),
+
+                    updatedAt:
+                        firebase.firestore
+                            .FieldValue
+                            .serverTimestamp()
+
+                }
+
+            );
+
+        }
+    );
+
+
+    await batch.commit();
+
+}
+```
+
+}
+
+/* ========================================================
+BOOTSTRAP
+======================================================== */
+
+window.addEventListener(
+"beforeunload",
+() => {
+
+```
+    removeListeners();
+
+}
+```
+
+);
+
+/*
+
+* Create the default three teams only when the
+* collection is completely empty.
+*
+* This is deliberately delayed until Firebase Auth
+* has verified the admin.
+  */
+
+auth.onAuthStateChanged(
+async user => {
+
+```
+    if (!user) {
+        return;
+    }
+
+
+    try {
+
+        const isAdmin =
+            await verifyAdmin(
+                user
+            );
+
+
+        if (
+            !isAdmin
+        ) {
+
+            return;
+
+        }
+
+
+        await ensureTeamsExist();
+
+
+    } catch (error) {
+
+        console.error(
+            "Team bootstrap error:",
+            error
+        );
+
+    }
+
+}
+```
+
+);
+
+/* ========================================================
+END
+========================================================= */
