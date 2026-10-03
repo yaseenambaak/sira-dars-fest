@@ -1,134 +1,785 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#0f172a">
-  <title>Admin Login • Sira Dars Fest</title>
+    <meta charset="UTF-8">
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,400..700,0..1,0..200&family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="admin.css">
+```
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+>
 
-  <!-- Firebase SDKs -->
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+<meta
+    name="theme-color"
+    content="#2563eb"
+>
+
+<title>Sira Dars Fest - Admin Login</title>
+
+<link rel="stylesheet" href="admin.css">
+
+<link
+    rel="preconnect"
+    href="https://fonts.googleapis.com"
+>
+
+<link
+    rel="preconnect"
+    href="https://fonts.gstatic.com"
+    crossorigin
+>
+
+<link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..700,0..1,-50..200"
+    rel="stylesheet"
+>
+```
+
 </head>
-<body>
 
-  <main class="admin-login-page">
-    <div class="login-wrapper">
-      <section class="login-card">
-        <div class="login-header">
-          <div class="login-icon">
-            <span class="material-symbols-rounded">admin_panel_settings</span>
-          </div>
-          <h1>Sira Dars Fest</h1>
-          <p>Administration Control Panel</p>
+<body class="login-page">
+
+```
+<main class="login-wrapper">
+
+    <section class="login-card">
+
+        <div class="login-brand">
+
+            <div class="login-logo">
+                S
+            </div>
+
+            <div class="login-brand-text">
+                <strong>
+                    Sira Dars Fest
+                </strong>
+
+                <span>
+                    Admin Panel
+                </span>
+            </div>
+
         </div>
 
-        <form id="loginForm">
-          <div class="form-group login-form-group">
-            <label for="adminEmail">Email Address</label>
-            <input type="email" id="adminEmail" name="email" placeholder="admin@siradars.com" autocomplete="email" required>
-          </div>
 
-          <div class="form-group login-form-group">
-            <label for="adminPassword">Password</label>
-            <div class="password-wrapper">
-              <input type="password" id="adminPassword" name="password" placeholder="Enter password" autocomplete="current-password" required>
-              <button type="button" class="password-toggle" id="passwordToggle" aria-label="Show password">
-                <span class="material-symbols-rounded">visibility</span>
-              </button>
+        <div class="login-heading">
+
+            <h1>
+                Welcome back
+            </h1>
+
+            <p>
+                Sign in to manage your fest.
+            </p>
+
+        </div>
+
+
+        <form
+            id="loginForm"
+            autocomplete="on"
+            novalidate
+        >
+
+            <div class="form-group">
+
+                <label for="email">
+                    Email Address
+                </label>
+
+                <div class="input-with-icon">
+
+                    <span class="material-symbols-rounded">
+                        mail
+                    </span>
+
+                    <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        placeholder="Enter admin email"
+                        autocomplete="username"
+                        required
+                    >
+
+                </div>
+
             </div>
-          </div>
 
-          <div class="form-error" id="loginError" aria-live="polite"></div>
 
-          <button type="submit" class="primary-button login-button" id="loginBtn">
-            <span class="material-symbols-rounded">login</span>
-            <span>Login to Admin</span>
-          </button>
+            <div class="form-group">
+
+                <label for="password">
+                    Password
+                </label>
+
+                <div class="input-with-icon">
+
+                    <span class="material-symbols-rounded">
+                        lock
+                    </span>
+
+                    <input
+                        type="password"
+                        id="password"
+                        name="password"
+                        placeholder="Enter password"
+                        autocomplete="current-password"
+                        required
+                    >
+
+                    <button
+                        type="button"
+                        id="togglePassword"
+                        class="password-toggle"
+                        aria-label="Show password"
+                    >
+                        <span class="material-symbols-rounded">
+                            visibility
+                        </span>
+                    </button>
+
+                </div>
+
+            </div>
+
+
+            <div
+                id="loginMessage"
+                class="login-message"
+                role="alert"
+                aria-live="polite"
+            ></div>
+
+
+            <button
+                type="submit"
+                id="loginButton"
+                class="login-submit"
+            >
+
+                <span
+                    id="loginButtonIcon"
+                    class="material-symbols-rounded"
+                >
+                    login
+                </span>
+
+                <span id="loginButtonText">
+                    Sign In
+                </span>
+
+            </button>
+
         </form>
 
-        <a href="index.html" class="back-link">
-          <span class="material-symbols-rounded">arrow_back</span>
-          Back to Festival Website
-        </a>
-      </section>
-    </div>
-  </main>
 
-  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+        <button
+            type="button"
+            id="forgotPasswordButton"
+            class="forgot-password"
+        >
+            Forgot password?
+        </button>
 
-  <script>
+
+        <div class="login-footer">
+
+            <span class="material-symbols-rounded">
+                security
+            </span>
+
+            <span>
+                Secure admin access
+            </span>
+
+        </div>
+
+    </section>
+
+</main>
+
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+
+<script>
+
     "use strict";
 
+
+    /* =====================================================
+       FIREBASE CONFIG
+    ===================================================== */
+
     const firebaseConfig = {
-      apiKey: "AIzaSyAXJ79MCPymsCTTM5VxiSgEShju_tAqyZ8",
-      authDomain: "sira-dars-fest.firebaseapp.com",
-      projectId: "sira-dars-fest",
-      storageBucket: "sira-dars-fest.firebasestorage.app",
-      messagingSenderId: "680115463640",
-      appId: "1:680115463640:web:4a55721c045a06f9cbfead"
+        apiKey: "YOUR_FIREBASE_API_KEY",
+        authDomain: "YOUR_FIREBASE_AUTH_DOMAIN",
+        projectId: "YOUR_FIREBASE_PROJECT_ID",
+        storageBucket: "YOUR_FIREBASE_STORAGE_BUCKET",
+        messagingSenderId: "YOUR_FIREBASE_MESSAGING_SENDER_ID",
+        appId: "YOUR_FIREBASE_APP_ID"
     };
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
 
-    const loginForm = document.getElementById("loginForm");
-    const emailInput = document.getElementById("adminEmail");
-    const passwordInput = document.getElementById("adminPassword");
-    const passwordToggle = document.getElementById("passwordToggle");
-    const loginError = document.getElementById("loginError");
-    const loginBtn = document.getElementById("loginBtn");
 
-    function showToast(message, type = "success") {
-      const toast = document.getElementById("toast");
-      if (!toast) return;
-      toast.textContent = message;
-      toast.className = `toast show ${type}`;
-      setTimeout(() => { toast.className = "toast"; }, 3000);
+    /* =====================================================
+       INITIALIZE FIREBASE
+    ===================================================== */
+
+    if (!firebase.apps.length) {
+
+        firebase.initializeApp(
+            firebaseConfig
+        );
+
     }
 
-    // Redirect if already logged in via Firebase Auth
-    auth.onAuthStateChanged((user) => {
-      if (user) {
-        window.location.replace("admin.html");
-      }
-    });
 
-    passwordToggle.addEventListener("click", () => {
-      const isPassword = passwordInput.type === "password";
-      passwordInput.type = isPassword ? "text" : "password";
-      passwordToggle.querySelector("span").textContent = isPassword ? "visibility_off" : "visibility";
-    });
+    const auth =
+        firebase.auth();
 
-    loginForm.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const email = emailInput.value.trim();
-      const password = passwordInput.value;
 
-      loginError.textContent = "";
-      loginBtn.disabled = true;
-      loginBtn.innerHTML = "Authenticating...";
+    const db =
+        firebase.firestore();
 
-      try {
-        await auth.signInWithEmailAndPassword(email, password);
-        showToast("Login successful! Redirecting...");
-        setTimeout(() => {
-          window.location.replace("admin.html");
-        }, 800);
-      } catch (error) {
-        console.error("Login error:", error);
-        loginError.textContent = "Invalid email or password.";
-        showToast("Authentication failed.", "error");
-        loginBtn.disabled = false;
-        loginBtn.innerHTML = '<span class="material-symbols-rounded">login</span><span>Login to Admin</span>';
-        passwordInput.focus();
-      }
-    });
-  </script>
+
+    /* =====================================================
+       DOM
+    ===================================================== */
+
+    const loginForm =
+        document.getElementById(
+            "loginForm"
+        );
+
+    const emailInput =
+        document.getElementById(
+            "email"
+        );
+
+    const passwordInput =
+        document.getElementById(
+            "password"
+        );
+
+    const loginButton =
+        document.getElementById(
+            "loginButton"
+        );
+
+    const loginButtonText =
+        document.getElementById(
+            "loginButtonText"
+        );
+
+    const loginButtonIcon =
+        document.getElementById(
+            "loginButtonIcon"
+        );
+
+    const loginMessage =
+        document.getElementById(
+            "loginMessage"
+        );
+
+    const togglePassword =
+        document.getElementById(
+            "togglePassword"
+        );
+
+    const forgotPasswordButton =
+        document.getElementById(
+            "forgotPasswordButton"
+        );
+
+
+    /* =====================================================
+       MESSAGE
+    ===================================================== */
+
+    function showMessage(
+        message,
+        type = "error"
+    ) {
+
+        loginMessage.textContent =
+            message;
+
+        loginMessage.className =
+            `login-message ${type}`;
+
+    }
+
+
+    function clearMessage() {
+
+        loginMessage.textContent =
+            "";
+
+        loginMessage.className =
+            "login-message";
+
+    }
+
+
+    /* =====================================================
+       LOADING STATE
+    ===================================================== */
+
+    function setLoading(
+        loading
+    ) {
+
+        loginButton.disabled =
+            loading;
+
+        emailInput.disabled =
+            loading;
+
+        passwordInput.disabled =
+            loading;
+
+        forgotPasswordButton.disabled =
+            loading;
+
+
+        if (loading) {
+
+            loginButtonIcon.textContent =
+                "progress_activity";
+
+            loginButtonIcon.classList.add(
+                "spin"
+            );
+
+            loginButtonText.textContent =
+                "Signing in...";
+
+        } else {
+
+            loginButtonIcon.textContent =
+                "login";
+
+            loginButtonIcon.classList.remove(
+                "spin"
+            );
+
+            loginButtonText.textContent =
+                "Sign In";
+
+        }
+
+    }
+
+
+    /* =====================================================
+       PASSWORD VISIBILITY
+    ===================================================== */
+
+    togglePassword.addEventListener(
+        "click",
+        () => {
+
+            const isPassword =
+                passwordInput.type ===
+                "password";
+
+
+            passwordInput.type =
+                isPassword
+                    ? "text"
+                    : "password";
+
+
+            togglePassword
+                .querySelector(
+                    ".material-symbols-rounded"
+                )
+                .textContent =
+                    isPassword
+                        ? "visibility_off"
+                        : "visibility";
+
+            togglePassword.setAttribute(
+                "aria-label",
+                isPassword
+                    ? "Hide password"
+                    : "Show password"
+            );
+
+        }
+    );
+
+
+    /* =====================================================
+       ADMIN CHECK
+    ===================================================== */
+
+    async function checkAdminAccess(
+        user
+    ) {
+
+        if (!user) {
+            return false;
+        }
+
+
+        try {
+
+            const adminDoc =
+                await db
+                    .collection("admins")
+                    .doc(user.uid)
+                    .get();
+
+
+            if (!adminDoc.exists) {
+                return false;
+            }
+
+
+            const data =
+                adminDoc.data() || {};
+
+
+            return (
+                String(
+                    data.role || ""
+                )
+                    .trim()
+                    .toLowerCase() ===
+                "admin"
+            );
+
+        } catch (error) {
+
+            console.error(
+                "Admin verification failed:",
+                error
+            );
+
+            return false;
+
+        }
+
+    }
+
+
+    /* =====================================================
+       AUTH STATE
+    ===================================================== */
+
+    let authStateHandled =
+        false;
+
+
+    auth.onAuthStateChanged(
+        async user => {
+
+            /*
+             * Prevent unnecessary redirect loops
+             * while Firebase restores the session.
+             */
+
+            if (!user) {
+
+                authStateHandled =
+                    false;
+
+                return;
+
+            }
+
+
+            if (authStateHandled) {
+                return;
+            }
+
+
+            authStateHandled =
+                true;
+
+
+            const isAdmin =
+                await checkAdminAccess(
+                    user
+                );
+
+
+            if (isAdmin) {
+
+                window.location.replace(
+                    "admin.html"
+                );
+
+                return;
+
+            }
+
+
+            /*
+             * Authenticated but NOT admin.
+             * Immediately sign out.
+             */
+
+            await auth.signOut();
+
+
+            showMessage(
+                "This account does not have admin access.",
+                "error"
+            );
+
+        }
+    );
+
+
+    /* =====================================================
+       LOGIN
+    ===================================================== */
+
+    loginForm.addEventListener(
+        "submit",
+        async event => {
+
+            event.preventDefault();
+
+            clearMessage();
+
+
+            const email =
+                emailInput.value
+                    .trim();
+
+            const password =
+                passwordInput.value;
+
+
+            if (!email) {
+
+                showMessage(
+                    "Please enter your email address."
+                );
+
+                emailInput.focus();
+
+                return;
+
+            }
+
+
+            if (!password) {
+
+                showMessage(
+                    "Please enter your password."
+                );
+
+                passwordInput.focus();
+
+                return;
+
+            }
+
+
+            setLoading(true);
+
+
+            try {
+
+                const credential =
+                    await auth
+                        .signInWithEmailAndPassword(
+                            email,
+                            password
+                        );
+
+
+                const user =
+                    credential.user;
+
+
+                const isAdmin =
+                    await checkAdminAccess(
+                        user
+                    );
+
+
+                if (!isAdmin) {
+
+                    await auth.signOut();
+
+                    showMessage(
+                        "Login successful, but this account is not an admin account."
+                    );
+
+                    return;
+
+                }
+
+
+                showMessage(
+                    "Login successful. Opening admin panel...",
+                    "success"
+                );
+
+
+                window.location.replace(
+                    "admin.html"
+                );
+
+
+            } catch (error) {
+
+                console.error(
+                    "Login error:",
+                    error
+                );
+
+
+                let message =
+                    "Unable to sign in. Please check your email and password.";
+
+
+                switch (
+                    error.code
+                ) {
+
+                    case "auth/invalid-email":
+
+                        message =
+                            "Please enter a valid email address.";
+
+                        break;
+
+
+                    case "auth/user-disabled":
+
+                        message =
+                            "This account has been disabled.";
+
+                        break;
+
+
+                    case "auth/invalid-credential":
+
+                    case "auth/wrong-password":
+
+                    case "auth/user-not-found":
+
+                        message =
+                            "Invalid email or password.";
+
+                        break;
+
+
+                    case "auth/too-many-requests":
+
+                        message =
+                            "Too many attempts. Please try again later.";
+
+                        break;
+
+
+                    case "auth/network-request-failed":
+
+                        message =
+                            "Network error. Please check your internet connection.";
+
+                        break;
+
+                }
+
+
+                showMessage(
+                    message,
+                    "error"
+                );
+
+            } finally {
+
+                setLoading(false);
+
+            }
+
+        }
+    );
+
+
+    /* =====================================================
+       FORGOT PASSWORD
+    ===================================================== */
+
+    forgotPasswordButton.addEventListener(
+        "click",
+        async () => {
+
+            clearMessage();
+
+
+            const email =
+                emailInput.value
+                    .trim();
+
+
+            if (!email) {
+
+                showMessage(
+                    "Enter your admin email first."
+                );
+
+                emailInput.focus();
+
+                return;
+
+            }
+
+
+            try {
+
+                await auth.sendPasswordResetEmail(
+                    email
+                );
+
+
+                showMessage(
+                    "If this email belongs to an account, a password reset email has been sent.",
+                    "success"
+                );
+
+
+            } catch (error) {
+
+                console.error(
+                    "Password reset error:",
+                    error
+                );
+
+
+                /*
+                 * Keep the public message generic.
+                 * This avoids revealing whether
+                 * an email exists.
+                 */
+
+                showMessage(
+                    "If this email belongs to an account, a password reset email has been sent.",
+                    "success"
+                );
+
+            }
+
+        }
+    );
+
+</script>
+```
+
 </body>
 </html>
